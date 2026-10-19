@@ -420,6 +420,7 @@ export const Dashboard: React.FC = () => {
                 stateCode={backtestDetail.region.state_code}
               />
               <EvidenceValidationPanel validation={modelStatus?.evidence_grade_validation ?? null} />
+              <CategoryPerformancePanel categoryMetrics={modelStatus?.category_metrics ?? null} />
             </div>
           ) : (
             <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
@@ -532,6 +533,49 @@ const EvidenceValidationPanel: React.FC<{ validation: ModelStatusResponse["evide
           Rank correlation (score vs. error): <span className="font-mono text-slate-300">{validation.spearman_like_rank_correlation_score_vs_error}</span>{" "}
           over {validation.n_sufficient_graded_segments} segments. Small-sample, single-run result — see Data Trust Centre for the full disclosure.
         </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Feature C: "performance across supported occupations or segments" -
+ * this real data (per-category walk-forward metrics) was already computed
+ * and returned by the API but never rendered anywhere until now. */
+const CategoryPerformancePanel: React.FC<{ categoryMetrics: Record<string, any> | null }> = ({ categoryMetrics }) => {
+  if (!categoryMetrics || Object.keys(categoryMetrics).length === 0) return null
+  const rows = Object.entries(categoryMetrics).sort((a, b) => b[1].evaluated_segments - a[1].evaluated_segments)
+
+  return (
+    <Card className="bg-slate-900/60 border-slate-800/80">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Model performance by trade category</CardTitle>
+        <CardDescription className="text-[11px]">Real walk-forward backtest results, broken down by segment group — not just the single selected segment above</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-slate-500 border-b border-slate-800 text-left">
+              <th className="py-1 pr-2">Category</th>
+              <th className="py-1 pr-2 text-right">Segments</th>
+              <th className="py-1 pr-2 text-right">Baseline MAE</th>
+              <th className="py-1 pr-2 text-right">Candidate MAE</th>
+              <th className="py-1 text-right">Candidate win rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([category, m]) => (
+              <tr key={category} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                <td className="py-1.5 pr-2 text-slate-200">{category}</td>
+                <td className="py-1.5 pr-2 text-right text-slate-400">{m.evaluated_segments}</td>
+                <td className="py-1.5 pr-2 text-right font-mono text-amber-400">{m.baseline_mean_mae}</td>
+                <td className="py-1.5 pr-2 text-right font-mono text-cyan-400">{m.candidate_mean_mae}</td>
+                <td className={`py-1.5 text-right font-mono font-semibold ${m.candidate_win_rate_pct >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
+                  {m.candidate_win_rate_pct}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </CardContent>
     </Card>
   )
