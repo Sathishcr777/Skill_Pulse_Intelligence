@@ -1,280 +1,548 @@
-import React, { useEffect, useState, useCallback } from "react"
+import React, { useEffect, useState, useCallback, useMemo } from "react"
 import {
-  Activity,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-  Database,
-  Cpu,
-  Layers,
-  ShieldCheck,
   TrendingUp,
+  Target,
+  History,
+  ShieldCheck,
+  RefreshCw,
+  Search,
+  MapPin,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Database,
 } from "lucide-react"
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { TimeSeriesChart } from "@/components/TimeSeriesChart"
+import { BacktestChart } from "@/components/BacktestChart"
+import { api, ApiError } from "@/lib/api"
+import {
+  Region,
+  Occupation,
+  ForecastDetailResponse,
+  MarketOverviewResponse,
+  ModelStatusResponse,
+  BacktestDetailResponse,
+} from "@/types/api"
 
-interface HealthResponse {
-  status: string
-  service: string
-  version: string
-  database: string
-  timestamp: string
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+type Tab = "forecast" | "radar" | "backtest" | "trust"
 
 export const Dashboard: React.FC = () => {
-  const [healthData, setHealthData] = useState<HealthResponse | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
+  const [activeTab, setActiveTab] = useState<Tab>("forecast")
+  const [selectedRegion, setSelectedRegion] = useState<string>("MH")
+  const [selectedOccupationCode, setSelectedOccupationCode] = useState<number>(7411.01)
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL")
+  const [searchQuery, setSearchQuery] = useState<string>("")
+
+  const [regions, setRegions] = useState<Region[]>([])
+  const [occupations, setOccupations] = useState<Occupation[]>([])
+  const [forecastDetail, setForecastDetail] = useState<ForecastDetailResponse | null>(null)
+  const [backtestDetail, setBacktestDetail] = useState<BacktestDetailResponse | null>(null)
+  const [marketOverview, setMarketOverview] = useState<MarketOverviewResponse | null>(null)
+  const [modelStatus, setModelStatus] = useState<ModelStatusResponse | null>(null)
+
+  const [loadingInitial, setLoadingInitial] = useState(true)
+  const [loadingForecast, setLoadingForecast] = useState(true)
+  const [loadingBacktest, setLoadingBacktest] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [latency, setLatency] = useState<number | null>(null)
 
-  const fetchHealth = useCallback(async () => {
-    setLoading(true)
+  const fetchInitialData = useCallback(async () => {
+    setLoadingInitial(true)
     setError(null)
-    const startTime = performance.now()
     try {
-      const response = await fetch(`${API_BASE_URL}/health`)
-      const elapsed = Math.round(performance.now() - startTime)
-      setLatency(elapsed)
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      const data: HealthResponse = await response.json()
-      setHealthData(data)
+      const [regData, occData, overviewData, modelData] = await Promise.all([
+        api.regions(),
+        api.occupations(),
+        api.marketOverview(),
+        api.modelStatus(),
+      ])
+      setRegions(regData)
+      setOccupations(occData)
+      setMarketOverview(overviewData)
+      setModelStatus(modelData)
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to connect to SkillPulse API backend"
+        err instanceof ApiError
+          ? `API error (${err.status}): ${err.message}`
+          : "Failed to connect to SkillPulse API backend. Ensure FastAPI is running on port 8000."
       )
-      setHealthData(null)
     } finally {
-      setLoading(false)
+      setLoadingInitial(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchHealth()
-  }, [fetchHealth])
+    fetchInitialData()
+  }, [fetchInitialData])
+
+  const fetchSegmentDetail = useCallback(async (code: number, region: string) => {
+    setLoadingForecast(true)
+    setLoadingBacktest(true)
+    try {
+      const data = await api.forecast(code, region)
+      setForecastDetail(data)
+    } catch {
+      setForecastDetail(null)
+    } finally {
+      setLoadingForecast(false)
+    }
+    try {
+      const bt = await api.backtest(code, region)
+      setBacktestDetail(bt)
+    } catch {
+      setBacktestDetail(null)
+    } finally {
+      setLoadingBacktest(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (selectedOccupationCode && selectedRegion) {
+      fetchSegmentDetail(selectedOccupationCode, selectedRegion)
+    }
+  }, [selectedOccupationCode, selectedRegion, fetchSegmentDetail])
+
+  const filteredOccupations = useMemo(() => {
+    return occupations.filter((occ) => {
+      const matchesCategory = selectedCategory === "ALL" || occ.trade_category === selectedCategory
+      const matchesSearch =
+        occ.title.toLowerCase().includes(searchQuery.toLowerCase()) || occ.nco_code.toString().includes(searchQuery)
+      return matchesCategory && matchesSearch
+    })
+  }, [occupations, selectedCategory, searchQuery])
+
+  const tradeCategories = useMemo(
+    () => ["ALL", ...Array.from(new Set(occupations.map((o) => o.trade_category)))],
+    [occupations]
+  )
+
+  // GET /forecast/{occ}/{region} intentionally omits skills to keep the
+  // payload light; look the real, already-fetched skill list up from the
+  // /occupations response instead of re-requesting it.
+  const selectedOccupationSkills = useMemo(
+    () => occupations.find((o) => Math.abs(o.nco_code - selectedOccupationCode) < 0.001)?.skills ?? [],
+    [occupations, selectedOccupationCode]
+  )
+
+  const handleSelectSegment = (ncoCode: number, stateCode: string) => {
+    setSelectedOccupationCode(ncoCode)
+    setSelectedRegion(stateCode)
+    setActiveTab("forecast")
+  }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header */}
-        <header className="border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="border-indigo-500/40 text-indigo-400 bg-indigo-500/10">
-                SIH26246
-              </Badge>
-              <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 bg-emerald-500/10">
-                Stage 1 — Skeleton & Data Foundation
-              </Badge>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">SIH26246</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Evidence-Graded Labour Market Intelligence
+              </span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
-              SkillPulse Intelligence
-            </h1>
-            <p className="text-slate-400 text-sm mt-1 max-w-2xl">
-              AI-Enabled Labour Market Intelligence & Skill Demand-Supply Forecasting Engine
-              (Ministry of Skill Development and Entrepreneurship).
+            <h1 className="text-3xl font-black tracking-tight text-white">SkillPulse Intelligence</h1>
+            <p className="text-slate-400 text-xs sm:text-sm max-w-3xl">
+              Supply proxy: verified PLFS Annual Report 2023-24 (Table 27) state-level industry shares — periodically
+              refreshed, never real-time. Demand signal is a synthetic demonstration series; see the Data Trust Centre
+              tab for the full, honest breakdown.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchHealth}
-              disabled={loading}
-              className="border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-200"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh Health
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={fetchInitialData} disabled={loadingInitial} className="border-slate-700 bg-slate-900/80 hover:bg-slate-800 self-start lg:self-auto">
+            <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loadingInitial ? "animate-spin text-indigo-400" : ""}`} />
+            Refresh
+          </Button>
         </header>
 
-        {/* Live System Health Card */}
-        <Card className="border-slate-800 bg-slate-900/60 backdrop-blur-sm shadow-xl">
-          <CardHeader className="pb-3 border-b border-slate-800/60">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-indigo-400" />
-                <CardTitle className="text-lg font-semibold text-slate-100">
-                  Live API Backend Telemetry
-                </CardTitle>
+        {error && (
+          <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-sm flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <Button size="sm" variant="outline" onClick={fetchInitialData} className="border-rose-500/40 text-rose-200">Retry</Button>
+          </div>
+        )}
+
+        {marketOverview && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Card className="bg-slate-900/60 border-slate-800/80">
+              <CardContent className="p-4">
+                <div className="text-[11px] text-slate-400 uppercase tracking-wider">Segments Forecastable</div>
+                <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
+                  {marketOverview.sufficient_segments}
+                  <span className="text-xs text-rose-400 font-normal ml-1.5">({marketOverview.excluded_segments} gated)</span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-900/60 border-slate-800/80">
+              <CardContent className="p-4">
+                <div className="text-[11px] text-slate-400 uppercase tracking-wider">Evidence Grade Split</div>
+                <div className="text-lg font-black text-cyan-400 font-mono mt-1">
+                  {marketOverview.grade_distribution.A ?? 0} A / {marketOverview.grade_distribution.B ?? 0} B / {marketOverview.grade_distribution.C ?? 0} C
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-900/60 border-slate-800/80">
+              <CardContent className="p-4">
+                <div className="text-[11px] text-slate-400 uppercase tracking-wider">Candidate vs Baseline (MAE)</div>
+                <div className="text-lg font-black text-slate-100 font-mono mt-1">
+                  {modelStatus ? `${modelStatus.overall_candidate_metrics.mae.toFixed(2)} vs ${modelStatus.overall_baseline_metrics.mae.toFixed(2)}` : "—"}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-900/60 border-slate-800/80">
+              <CardContent className="p-4">
+                <div className="text-[11px] text-slate-400 uppercase tracking-wider">Data Vintage</div>
+                <div className="text-lg font-black text-slate-100 font-mono mt-1">{marketOverview.latest_data_vintage}</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 border-b border-slate-800/80 overflow-x-auto pb-1">
+          {([
+            ["forecast", "Forecast", TrendingUp],
+            ["radar", "Opportunity Radar", Target],
+            ["backtest", "Backtest", History],
+            ["trust", "Data Trust Centre", ShieldCheck],
+          ] as [Tab, string, any][]).map(([tab, label, Icon]) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap ${
+                activeTab === tab ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {(activeTab === "forecast" || activeTab === "backtest") && (
+          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-indigo-400" /> State:
               </div>
-              <div>
-                {loading ? (
-                  <Badge variant="secondary">Checking...</Badge>
-                ) : error ? (
-                  <Badge variant="destructive" className="flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" /> Offline
-                  </Badge>
-                ) : (
-                  <Badge variant="success" className="flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Live & Connected
-                  </Badge>
-                )}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {regions.map((r) => (
+                  <button
+                    key={r.state_code}
+                    onClick={() => setSelectedRegion(r.state_code)}
+                    className={`px-3 py-1 rounded-xl text-xs font-semibold ${
+                      selectedRegion === r.state_code ? "bg-indigo-500 text-white" : "bg-slate-800/60 text-slate-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    {r.state_code}
+                  </button>
+                ))}
               </div>
             </div>
-            <CardDescription className="text-slate-400 text-xs">
-              Live response polled directly from FastAPI endpoint:{" "}
-              <code className="text-indigo-300 bg-slate-800/80 px-1 py-0.5 rounded">
-                GET {API_BASE_URL}/health
-              </code>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            {loading && !healthData && (
-              <div className="py-8 flex flex-col items-center justify-center text-slate-400 space-y-2">
-                <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" />
-                <p className="text-sm">Connecting to backend service...</p>
+            <div className="pt-2 border-t border-slate-800/60 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                {tradeCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap ${
+                      selectedCategory === cat ? "bg-slate-700 text-white" : "bg-slate-950/40 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
-            )}
-
-            {error && (
-              <div className="p-4 rounded-lg bg-red-950/40 border border-red-800/60 text-red-200 text-sm space-y-1">
-                <div className="font-semibold flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-400" />
-                  Connection Failed
-                </div>
-                <p className="text-xs text-red-300">{error}</p>
-                <p className="text-xs text-slate-400 mt-2">
-                  Ensure the backend FastAPI service is running on port 8000 via{" "}
-                  <code className="text-slate-200">uvicorn backend.app.main:app --reload</code>.
-                </p>
+              <div className="relative min-w-[220px]">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search trades..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
               </div>
-            )}
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap max-h-24 overflow-y-auto pr-1">
+              {filteredOccupations.map((occ) => (
+                <button
+                  key={occ.id}
+                  onClick={() => setSelectedOccupationCode(occ.nco_code)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 ${
+                    Math.abs(selectedOccupationCode - occ.nco_code) < 0.001
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold"
+                      : "bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-slate-800/80"
+                  }`}
+                >
+                  <span className="font-mono text-[10px] opacity-70">{occ.nco_code.toFixed(2)}</span>
+                  <span>{occ.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-            {healthData && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-lg bg-slate-800/40 border border-slate-800">
-                    <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5">
-                      <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-                      Service Status
-                    </div>
-                    <div className="text-lg font-bold text-emerald-400 capitalize flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      {healthData.status}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">{healthData.service}</div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-slate-800/40 border border-slate-800">
-                    <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5">
-                      <Database className="w-3.5 h-3.5 text-indigo-400" />
-                      Database Engine
-                    </div>
-                    <div className="text-sm font-semibold text-slate-200 truncate">
-                      {healthData.database}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">PostgreSQL Connection</div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-slate-800/40 border border-slate-800">
-                    <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                      Build Version
-                    </div>
-                    <div className="text-lg font-bold text-slate-100">v{healthData.version}</div>
-                    <div className="text-xs text-slate-500 mt-1">FastAPI + Pydantic v2</div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-slate-800/40 border border-slate-800">
-                    <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-indigo-400" />
-                      Response Latency
-                    </div>
-                    <div className="text-lg font-bold text-slate-100">
-                      {latency !== null ? `${latency} ms` : "—"}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1 truncate">
-                      {new Date(healthData.timestamp).toLocaleTimeString()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Raw JSON Payload */}
-                <div className="p-4 rounded-lg bg-slate-950/80 border border-slate-800/80 font-mono text-xs">
-                  <div className="text-slate-400 text-[11px] uppercase tracking-wider mb-2">
-                    Raw Live JSON Response:
-                  </div>
-                  <pre className="text-emerald-400 overflow-x-auto whitespace-pre-wrap">
-                    {JSON.stringify(healthData, null, 2)}
-                  </pre>
-                </div>
+        {activeTab === "forecast" &&
+          (loadingForecast && !forecastDetail ? (
+            <div className="h-72 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">
+              <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading forecast...
+            </div>
+          ) : forecastDetail ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                <TimeSeriesChart
+                  historicalData={forecastDetail.historical_series}
+                  forecastData={forecastDetail.forecasts}
+                  isSufficient={forecastDetail.is_sufficient}
+                  gatingReason={forecastDetail.gating_reason}
+                  stateCode={forecastDetail.region.state_code}
+                  occupationTitle={forecastDetail.occupation.title}
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="space-y-4">
+                <Card className="bg-slate-900/60 border-slate-800/80">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Evidence Grade</CardTitle>
+                    <CardDescription className="text-[11px]">Deterministic score, 0-100</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-3xl font-black text-indigo-400">{forecastDetail.evidence_grade.grade}</span>
+                      <span className="font-mono text-slate-300">{forecastDetail.evidence_grade.score}/100</span>
+                    </div>
+                    <div className="space-y-1 pt-2 border-t border-slate-800/60">
+                      <div className="flex justify-between"><span className="text-slate-400">Volume</span><span>{forecastDetail.evidence_grade.volume_score}/40</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Agreement</span><span>{forecastDetail.evidence_grade.agreement_score}/35</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Recency</span><span>{forecastDetail.evidence_grade.recency_score}/25</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Observations</span><span>{forecastDetail.evidence_grade.observations_count}</span></div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-slate-900/60 border-slate-800/80">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">O*NET Mapped Skills</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-xs">
+                    {selectedOccupationSkills.length > 0 ? (
+                      selectedOccupationSkills.map((sk) => (
+                        <div key={sk.skill_id} className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                          <span className="text-slate-200">{sk.skill_name}</span>
+                          <span className="font-mono text-indigo-400">{(sk.importance_score * 100).toFixed(0)}%</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-slate-500">No curated skill mapping for this trade yet.</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
+              No forecast data for this selection.
+            </div>
+          ))}
 
-        {/* Architecture & Five Priority Features Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-slate-800 bg-slate-900/40">
-            <CardHeader>
-              <ShieldCheck className="w-5 h-5 text-indigo-400 mb-1" />
-              <CardTitle className="text-base text-slate-200">
-                Core Differentiator
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Evidence-Graded Forecasting
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-xs text-slate-300 leading-relaxed">
-              Forecasts only where statistically justified. Cells graded "low evidence" demonstrably show higher backtest errors than "high evidence" cells — falsifiable proof, not marketing claims.
-            </CardContent>
-          </Card>
+        {activeTab === "radar" && marketOverview && (
+          <OpportunityRadarPanel overview={marketOverview} onSelect={handleSelectSegment} />
+        )}
 
-          <Card className="border-slate-800 bg-slate-900/40">
-            <CardHeader>
-              <TrendingUp className="w-5 h-5 text-emerald-400 mb-1" />
-              <CardTitle className="text-base text-slate-200">
-                Supply Proxy Rigor
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                No Invented Capacity
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-xs text-slate-300 leading-relaxed">
-              Uses unit-level PLFS microdata employment base rates as the real supply proxy. Planners input custom capacity numbers directly into what-if scenario calculators without fabrication.
-            </CardContent>
-          </Card>
+        {activeTab === "backtest" &&
+          (loadingBacktest ? (
+            <div className="h-72 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">
+              <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading backtest replay...
+            </div>
+          ) : backtestDetail ? (
+            <div className="space-y-5">
+              <BacktestChart
+                points={backtestDetail.points}
+                evidenceGrade={backtestDetail.evidence_grade}
+                candidateMeanAbsError={backtestDetail.candidate_mean_abs_error}
+                baselineMeanAbsError={backtestDetail.baseline_mean_abs_error}
+                occupationTitle={backtestDetail.occupation.title}
+                stateCode={backtestDetail.region.state_code}
+              />
+              <EvidenceValidationPanel validation={modelStatus?.evidence_grade_validation ?? null} />
+            </div>
+          ) : (
+            <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
+              No backtest data for this selection.
+            </div>
+          ))}
 
-          <Card className="border-slate-800 bg-slate-900/40">
-            <CardHeader>
-              <Layers className="w-5 h-5 text-amber-400 mb-1" />
-              <CardTitle className="text-base text-slate-200">
-                Opportunity Radar
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Emerging Skill Clusters
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-xs text-slate-300 leading-relaxed">
-              Detects co-occurring skill pairs across NCO-2015 occupations, cross-referenced with O*NET and ESCO taxonomies for transparent curriculum alignment.
-            </CardContent>
-          </Card>
-        </div>
+        {activeTab === "trust" && <DataTrustCentre modelStatus={modelStatus} marketOverview={marketOverview} />}
       </div>
     </div>
   )
 }
-<div>GET http://localhost:8000/models/status &rarr; Walk-Forward Provenance Metrics</div>
-              </div >
-            </div >
-          </div >
-        )}
-      </div >
-    </div >
+
+const OpportunityRadarPanel: React.FC<{
+  overview: MarketOverviewResponse
+  onSelect: (nco: number, state: string) => void
+}> = ({ overview, onSelect }) => (
+  <div className="space-y-5">
+    <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/20 text-amber-200 text-xs flex items-start gap-2">
+      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+      <span>
+        This view ranks segments by real computed net gap (demand minus the verified PLFS supply proxy) from the
+        current panel. It is not yet a skill-combination co-occurrence detector — that is a separate, not-yet-built
+        feature. Nothing here is a forecast; it reflects the latest available period only.
+      </span>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <RadarTable title="Highest unmet demand (deficit)" items={overview.top_deficit_trades} tone="rose" onSelect={onSelect} />
+      <RadarTable title="Largest oversupply (surplus)" items={overview.top_surplus_trades} tone="emerald" onSelect={onSelect} />
+    </div>
+  </div>
+)
+
+const RadarTable: React.FC<{ title: string; items: MarketOverviewResponse["top_deficit_trades"]; tone: "rose" | "emerald"; onSelect: (nco: number, state: string) => void }> = ({
+  title,
+  items,
+  tone,
+  onSelect,
+}) => (
+  <Card className="bg-slate-900/60 border-slate-800/80">
+    <CardHeader className="pb-2">
+      <CardTitle className="text-sm">{title}</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-1.5">
+      {items.length === 0 && <div className="text-xs text-slate-500">No segments to show.</div>}
+      {items.map((item, i) => (
+        <button
+          key={`${item.state_code}-${item.nco_code}-${i}`}
+          onClick={() => onSelect(item.nco_code, item.state_code)}
+          className="w-full text-left p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between text-xs"
+        >
+          <div>
+            <div className="text-slate-200 font-medium">{item.title}</div>
+            <div className="text-slate-500">{item.state_name} &middot; {item.trade_category} &middot; Grade {item.evidence_grade}</div>
+          </div>
+          <span className={`font-mono font-bold ${tone === "rose" ? "text-rose-400" : "text-emerald-400"}`}>
+            {item.net_gap > 0 ? "+" : ""}{item.net_gap.toFixed(1)}
+          </span>
+        </button>
+      ))}
+    </CardContent>
+  </Card>
+)
+
+const EvidenceValidationPanel: React.FC<{ validation: ModelStatusResponse["evidence_grade_validation"] }> = ({ validation }) => {
+  if (!validation || validation.status !== "computed") {
+    return (
+      <Card className="bg-slate-900/60 border-slate-800/80">
+        <CardContent className="p-4 text-xs text-slate-500">
+          Evidence-grade validation has not been computed yet. Run <code className="text-slate-300">python -m ml.evaluate.backtest</code>.
+        </CardContent>
+      </Card>
+    )
+  }
+  const supported = validation.hypothesis_low_evidence_means_higher_error_supported
+  return (
+    <Card className="bg-slate-900/60 border-slate-800/80">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Does the evidence grade actually predict error?</CardTitle>
+        <CardDescription className="text-[11px]">
+          The core differentiator's proof point, computed from real backtest results — reported honestly either way.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-xs">
+        <div className={`flex items-center gap-2 p-2.5 rounded-lg ${supported ? "bg-emerald-950/30 text-emerald-300" : "bg-rose-950/30 text-rose-300"}`}>
+          {supported ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+          <span className="font-semibold">
+            Hypothesis ("lower evidence grade correlates with higher real error") {supported ? "supported" : "not supported"} by this run.
+          </span>
+        </div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-slate-500 border-b border-slate-800">
+              <th className="text-left py-1">Grade</th>
+              <th className="text-right py-1">Mean Abs Error</th>
+              <th className="text-right py-1">N segments</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(validation.mean_abs_error_by_grade ?? {}).map(([grade, stats]) => (
+              <tr key={grade} className="border-b border-slate-800/50">
+                <td className="py-1 text-slate-200 font-semibold">{grade}</td>
+                <td className="py-1 text-right font-mono">{stats.mean_abs_error}</td>
+                <td className="py-1 text-right text-slate-400">{stats.n_segments}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="text-slate-500">
+          Rank correlation (score vs. error): <span className="font-mono text-slate-300">{validation.spearman_like_rank_correlation_score_vs_error}</span>{" "}
+          over {validation.n_sufficient_graded_segments} segments. Small-sample, single-run result — see Data Trust Centre for the full disclosure.
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marketOverview: MarketOverviewResponse | null }> = ({
+  modelStatus,
+  marketOverview,
+}) => (
+  <div className="space-y-5">
+    <Card className="bg-slate-900/60 border-slate-800/80">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-indigo-400" /> What's real vs. synthetic in this demo</CardTitle>
+        <CardDescription className="text-[11px]">Full citations and methodology in docs/data_integrity_audit.md</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2 text-xs">
+        <TrustRow label="Supply proxy (PLFS Table 27)" status="verified" detail="Annual Report, PLFS 2023-24, Table 27 (MoSPI/NSSO) — real, cited state×industry shares. Annual, not monthly." />
+        <TrustRow label="Occupation taxonomy (NCO-2015)" status="verified" detail="Hand-digitized from the official DGE codebook, 24 occupations." />
+        <TrustRow label="Skill taxonomy (O*NET 31.0)" status="verified" detail="Downloaded directly from O*NET Resource Center, CC-licensed." />
+        <TrustRow label="Demand signal" status="synthetic" detail="Demonstration series — base magnitude anchored to the real supply figure, but trend/seasonality/noise is a documented synthetic generator, not real postings volume." />
+        <TrustRow label="Postings skill-demand signal" status="partial" detail="Only 2 of 10 real sample postings matched a known trade — real keyword-presence computation, intentionally sparse rather than fabricated." />
+        <TrustRow label="Backtest & evidence-grade validation" status="verified" detail="Genuine out-of-sample walk-forward replay; validation result computed and disclosed honestly, including when weak." />
+      </CardContent>
+    </Card>
+
+    <Card className="bg-slate-900/60 border-slate-800/80">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Data freshness &amp; model provenance</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+          <div className="text-slate-400">Data vintage</div>
+          <div className="font-mono text-slate-200 text-sm">{marketOverview?.latest_data_vintage ?? "—"}</div>
+          <div className="text-amber-400 text-[10px] mt-1">Periodically refreshed — never real-time</div>
+        </div>
+        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+          <div className="text-slate-400">Training window</div>
+          <div className="font-mono text-slate-200 text-sm">
+            {modelStatus ? `${modelStatus.training_window.start_date} → ${modelStatus.training_window.end_date}` : "—"}
+          </div>
+        </div>
+        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+          <div className="text-slate-400">Candidate model</div>
+          <div className="text-slate-200">{modelStatus?.candidate_model ?? "—"}</div>
+        </div>
+        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+          <div className="text-slate-400">Baseline model</div>
+          <div className="text-slate-200">{modelStatus?.baseline_model ?? "—"}</div>
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+)
+
+const TrustRow: React.FC<{ label: string; status: "verified" | "synthetic" | "partial"; detail: string }> = ({ label, status, detail }) => {
+  const variant = status === "verified" ? "success" : status === "synthetic" ? "warning" : "secondary"
+  const text = status === "verified" ? "Verified real" : status === "synthetic" ? "Synthetic demo" : "Partially real"
+  return (
+    <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-slate-200 font-medium">{label}</span>
+        <Badge variant={variant as any}>{text}</Badge>
+      </div>
+      <div className="text-slate-500">{detail}</div>
+    </div>
   )
 }
