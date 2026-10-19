@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Database
-    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/skillpulse"
+    DATABASE_URL: str = "sqlite:///./data/skillpulse.db"
     
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [

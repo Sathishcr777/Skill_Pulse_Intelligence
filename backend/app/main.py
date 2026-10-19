@@ -11,6 +11,8 @@ app = FastAPI(
     description="SkillPulse Intelligence - AI-Enabled Labour Market Intelligence and Skill Demand-Supply Forecasting Engine",
 )
 
+from backend.app.api.routes import router as api_router
+
 # CORS Middleware setup
 app.add_middleware(
     CORSMiddleware,
@@ -19,6 +21,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount routes under root and /api/v1 for backwards/version compatibility
+app.include_router(api_router)
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", tags=["Health"])
