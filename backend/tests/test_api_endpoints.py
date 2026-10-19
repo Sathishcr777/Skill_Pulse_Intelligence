@@ -378,3 +378,39 @@ def test_get_backtest_insufficient_segment_has_no_points(client):
 def test_get_backtest_unknown_segment_returns_404(client):
     response = client.get("/backtest/7411.01/NONEXISTENT_STATE")
     assert response.status_code == 404
+
+
+# =========================================================================
+# 8. Data Trust Centre - real, live-computed provenance, not hardcoded
+# =========================================================================
+def test_get_data_trust_manifest(client):
+    response = client.get("/data-trust")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data["sources"]) >= 5
+    classifications = {s["classification"] for s in data["sources"]}
+    assert "observed" in classifications
+    assert "synthetic_demo" in classifications
+
+    # Every source must be traceable: real ones carry a name real enough to
+    # grep for in docs/data_integrity_audit.md; the synthetic one must be
+    # explicitly labeled, never disguised as observed.
+    plfs_source = next(s for s in data["sources"] if "PLFS" in s["name"])
+    assert plfs_source["classification"] == "observed"
+    assert "mospi.gov.in" in plfs_source["citation_url"]
+
+    demand_source = next(s for s in data["sources"] if "Demand index" in s["name"])
+    assert demand_source["classification"] == "synthetic_demo"
+
+    # Panel quality must be computed live from the real panel file, not a
+    # stale cached number - cross-check against the same live parquet read
+    # used by every other endpoint's loader.
+    quality = data["panel_quality"]
+    assert quality["available"] is True
+    assert quality["total_segments"] == 192
+    assert quality["sufficient_segments"] + quality["excluded_segments"] == 192
+    assert all(pct == 0.0 for pct in quality["missingness_pct"].values()), (
+        "Panel columns should have zero missingness given rows are excluded "
+        "rather than filled with nulls - a nonzero value here would be worth investigating."
+    )

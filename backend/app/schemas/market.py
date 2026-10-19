@@ -157,3 +157,31 @@ class BacktestDetailResponse(BaseModel):
     baseline_mean_abs_error: Optional[float] = None
     points: List[BacktestPointResponse]
     data_vintage: str
+
+
+class DataSourceManifestItem(BaseModel):
+    name: str
+    source_type: str
+    classification: str  # 'observed' | 'estimated' | 'predicted' | 'synthetic_demo'
+    publication_date: Optional[str] = None
+    observation_period: Optional[str] = None
+    geographic_coverage: str
+    ingestion_timestamp: Optional[str] = None
+    citation_url: Optional[str] = None
+    record_count: Optional[int] = None
+    limitations: str
+
+
+class PanelQualitySummary(BaseModel):
+    available: bool
+    total_rows: int
+    total_segments: int
+    sufficient_segments: int
+    excluded_segments: int
+    missingness_pct: Dict[str, float]
+
+
+class DataTrustManifestResponse(BaseModel):
+    generated_at: str
+    sources: List[DataSourceManifestItem]
+    panel_quality: PanelQualitySummary

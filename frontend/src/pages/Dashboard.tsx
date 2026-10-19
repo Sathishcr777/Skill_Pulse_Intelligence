@@ -29,6 +29,7 @@ import {
   MarketOverviewResponse,
   ModelStatusResponse,
   BacktestDetailResponse,
+  DataTrustManifestResponse,
 } from "@/types/api"
 
 type Tab = "forecast" | "radar" | "backtest" | "whatif" | "trust"
@@ -527,68 +528,160 @@ const EvidenceValidationPanel: React.FC<{ validation: ModelStatusResponse["evide
   )
 }
 
+const CLASSIFICATION_META: Record<string, { label: string; variant: "success" | "warning" | "secondary" }> = {
+  observed: { label: "Observed (real)", variant: "success" },
+  estimated: { label: "Estimated", variant: "secondary" },
+  predicted: { label: "Predicted", variant: "secondary" },
+  synthetic_demo: { label: "Synthetic demo", variant: "warning" },
+}
+
 const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marketOverview: MarketOverviewResponse | null }> = ({
   modelStatus,
   marketOverview,
-}) => (
-  <div className="space-y-5">
-    <Card className="bg-slate-900/60 border-slate-800/80">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-indigo-400" /> What's real vs. synthetic in this demo</CardTitle>
-        <CardDescription className="text-[11px]">Full citations and methodology in docs/data_integrity_audit.md</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2 text-xs">
-        <TrustRow label="Supply proxy (PLFS Table 27)" status="verified" detail="Annual Report, PLFS 2023-24, Table 27 (MoSPI/NSSO) — real, cited state×industry shares. Annual, not monthly." />
-        <TrustRow label="Occupation taxonomy (NCO-2015)" status="verified" detail="Hand-digitized from the official DGE codebook, 24 occupations." />
-        <TrustRow label="Skill taxonomy (O*NET 31.0)" status="verified" detail="Downloaded directly from O*NET Resource Center, CC-licensed." />
-        <TrustRow label="Demand signal" status="synthetic" detail="Demonstration series — base magnitude anchored to the real supply figure, but trend/seasonality/noise is a documented synthetic generator, not real postings volume." />
-        <TrustRow label="Postings skill-demand signal" status="partial" detail="Only 2 of 10 real sample postings matched a known trade — real keyword-presence computation, intentionally sparse rather than fabricated." />
-        <TrustRow label="Backtest & evidence-grade validation" status="verified" detail="Genuine out-of-sample walk-forward replay; validation result computed and disclosed honestly, including when weak." />
-      </CardContent>
-    </Card>
+}) => {
+  const [manifest, setManifest] = useState<DataTrustManifestResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState<string | null>(null)
 
-    <Card className="bg-slate-900/60 border-slate-800/80">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Data freshness &amp; model provenance</CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-          <div className="text-slate-400">Data vintage</div>
-          <div className="font-mono text-slate-200 text-sm">{marketOverview?.latest_data_vintage ?? "—"}</div>
-          <div className="text-amber-400 text-[10px] mt-1">Periodically refreshed — never real-time</div>
-        </div>
-        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-          <div className="text-slate-400">Training window</div>
-          <div className="font-mono text-slate-200 text-sm">
-            {modelStatus ? `${modelStatus.training_window.start_date} → ${modelStatus.training_window.end_date}` : "—"}
-          </div>
-        </div>
-        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-          <div className="text-slate-400">Candidate model</div>
-          <div className="text-slate-200">{modelStatus?.candidate_model ?? "—"}</div>
-        </div>
-        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-          <div className="text-slate-400">Baseline model</div>
-          <div className="text-slate-200">{modelStatus?.baseline_model ?? "—"}</div>
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-)
+  useEffect(() => {
+    api
+      .dataTrust()
+      .then(setManifest)
+      .catch(() => setManifest(null))
+      .finally(() => setLoading(false))
+  }, [])
 
-const TrustRow: React.FC<{ label: string; status: "verified" | "synthetic" | "partial"; detail: string }> = ({ label, status, detail }) => {
-  const variant = status === "verified" ? "success" : status === "synthetic" ? "warning" : "secondary"
-  const text = status === "verified" ? "Verified real" : status === "synthetic" ? "Synthetic demo" : "Partially real"
   return (
-    <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-slate-200 font-medium">{label}</span>
-        <Badge variant={variant as any}>{text}</Badge>
-      </div>
-      <div className="text-slate-500">{detail}</div>
+    <div className="space-y-5">
+      <Card className="bg-slate-900/60 border-slate-800/80">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-indigo-400" /> Data sources &amp; classification</CardTitle>
+          <CardDescription className="text-[11px]">
+            Live from <code>GET /data-trust</code> — click a source for its full citation and limitations
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-xs">
+          {loading && <div className="text-slate-500">Loading manifest...</div>}
+          {!loading && !manifest && <div className="text-rose-400">Could not load the data trust manifest from the API.</div>}
+          {manifest?.sources.map((src) => {
+            const meta = CLASSIFICATION_META[src.classification] ?? CLASSIFICATION_META.estimated
+            const isOpen = expanded === src.name
+            return (
+              <div key={src.name} className="rounded-lg bg-slate-950/60 border border-slate-800/80 overflow-hidden">
+                <button
+                  onClick={() => setExpanded(isOpen ? null : src.name)}
+                  className="w-full p-2.5 flex items-center justify-between text-left hover:bg-slate-900/40 transition-colors"
+                >
+                  <div>
+                    <span className="text-slate-200 font-medium">{src.name}</span>
+                    <span className="text-slate-500 ml-2 text-[10px]">{src.source_type}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant={meta.variant}>{meta.label}</Badge>
+                    <span className="text-slate-500 text-[10px]">{isOpen ? "▲" : "▼"}</span>
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="p-3 pt-0 space-y-1.5 text-[11px] text-slate-400 border-t border-slate-800/60">
+                    <DetailRow label="Observation period" value={src.observation_period ?? "—"} />
+                    <DetailRow label="Publication date" value={src.publication_date ?? "—"} />
+                    <DetailRow label="Geographic coverage" value={src.geographic_coverage} />
+                    <DetailRow label="Record count" value={src.record_count?.toLocaleString() ?? "—"} />
+                    <DetailRow label="Ingested" value={src.ingestion_timestamp ? new Date(src.ingestion_timestamp).toLocaleString() : "—"} />
+                    {src.citation_url && (
+                      <DetailRow
+                        label="Source"
+                        value={
+                          <a href={src.citation_url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline break-all">
+                            {src.citation_url}
+                          </a>
+                        }
+                      />
+                    )}
+                    <div className="pt-1.5 border-t border-slate-800/60 text-amber-200/80">
+                      <strong className="text-amber-300">Limitations:</strong> {src.limitations}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-slate-900/60 border-slate-800/80">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Live panel quality</CardTitle>
+          <CardDescription className="text-[11px]">Computed from the current panel file at request time, not cached</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-xs">
+          {manifest?.panel_quality && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <ResultStat label="Total rows" value={manifest.panel_quality.total_rows.toLocaleString()} />
+              <ResultStat label="Segments" value={manifest.panel_quality.total_segments.toString()} />
+              <ResultStat label="Forecastable" value={manifest.panel_quality.sufficient_segments.toString()} tone="emerald" />
+              <ResultStat label="Gated (insufficient)" value={manifest.panel_quality.excluded_segments.toString()} tone="amber" />
+            </div>
+          )}
+          {manifest?.panel_quality && (
+            <div>
+              <div className="text-slate-400 mb-1.5">Missingness by column (0% expected — rows with gaps are excluded, not filled)</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {Object.entries(manifest.panel_quality.missingness_pct).map(([col, pct]) => (
+                  <div key={col} className={`px-2 py-1 rounded-md text-[10px] font-mono flex justify-between ${pct > 0 ? "bg-rose-950/40 text-rose-300" : "bg-slate-950/60 text-slate-500"}`}>
+                    <span>{col}</span>
+                    <span>{pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-slate-900/60 border-slate-800/80">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Data freshness &amp; model provenance</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+            <div className="text-slate-400">Data vintage</div>
+            <div className="font-mono text-slate-200 text-sm">{marketOverview?.latest_data_vintage ?? "—"}</div>
+            <div className="text-amber-400 text-[10px] mt-1">Periodically refreshed — never real-time</div>
+          </div>
+          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+            <div className="text-slate-400">Training window</div>
+            <div className="font-mono text-slate-200 text-sm">
+              {modelStatus ? `${modelStatus.training_window.start_date} → ${modelStatus.training_window.end_date}` : "—"}
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+            <div className="text-slate-400">Candidate model</div>
+            <div className="text-slate-200">{modelStatus?.candidate_model ?? "—"}</div>
+          </div>
+          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+            <div className="text-slate-400">Baseline model</div>
+            <div className="text-slate-200">{modelStatus?.baseline_model ?? "—"}</div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
+
+const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-3">
+    <span className="text-slate-500 shrink-0">{label}</span>
+    <span className="text-slate-300 text-right">{value}</span>
+  </div>
+)
+
+const ResultStat: React.FC<{ label: string; value: string; tone?: "emerald" | "amber" }> = ({ label, value, tone }) => (
+  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
+    <div className="text-[10px] text-slate-400">{label}</div>
+    <div className={`font-mono font-bold ${tone === "emerald" ? "text-emerald-400" : tone === "amber" ? "text-amber-400" : "text-slate-200"}`}>{value}</div>
+  </div>
+)
 
 /** Phase 7 contextual help: a small inline "?" that reveals a definition on
  * hover/focus, so technical terms (MAE, evidence grade, supply proxy...)

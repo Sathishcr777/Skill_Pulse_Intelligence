@@ -26,9 +26,11 @@ from backend.app.models.entities import (
     Region,
     Skill,
 )
+from backend.app.services.data_trust import get_data_trust_manifest
 from backend.app.schemas.market import (
     BacktestDetailResponse,
     BacktestPointResponse,
+    DataTrustManifestResponse,
     EvidenceGradeSummary,
     ForecastDataPoint,
     ForecastDetailResponse,
@@ -551,3 +553,12 @@ def get_backtest(
         points=points,
         data_vintage=eg.data_vintage,
     )
+
+
+@router.get("/data-trust", response_model=DataTrustManifestResponse, tags=["Provenance"])
+def get_data_trust():
+    """Returns the Data Trust Centre manifest: per-source classification,
+    citation, and coverage, plus live-computed panel quality stats (row
+    counts, missingness) read directly from the current panel file at
+    request time - not a cached snapshot."""
+    return DataTrustManifestResponse(**get_data_trust_manifest())

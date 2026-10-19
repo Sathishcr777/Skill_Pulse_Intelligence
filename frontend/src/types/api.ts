@@ -163,3 +163,31 @@ export interface BacktestDetailResponse {
   points: BacktestPointResponse[]
   data_vintage: string
 }
+
+export interface DataSourceManifestItem {
+  name: string
+  source_type: string
+  classification: "observed" | "estimated" | "predicted" | "synthetic_demo"
+  publication_date: string | null
+  observation_period: string | null
+  geographic_coverage: string
+  ingestion_timestamp: string | null
+  citation_url: string | null
+  record_count: number | null
+  limitations: string
+}
+
+export interface PanelQualitySummary {
+  available: boolean
+  total_rows: number
+  total_segments: number
+  sufficient_segments: number
+  excluded_segments: number
+  missingness_pct: Record<string, number>
+}
+
+export interface DataTrustManifestResponse {
+  generated_at: string
+  sources: DataSourceManifestItem[]
+  panel_quality: PanelQualitySummary
+}
