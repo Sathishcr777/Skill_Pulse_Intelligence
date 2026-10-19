@@ -40,3 +40,38 @@ Deployment: docker-compose, local-first, offline-capable.
 - No chatbot. Explanations are template-generated from structured driver
   data (deterministic, reproducible). A live-LLM "regenerate explanation"
   button may be added later as strictly non-critical-path.
+
+## Statistical-Sufficiency Gating Specification (Step 2)
+A time-series segment (state x occupation) may only produce a forecast if it passes the following concrete statistical-sufficiency check:
+1. **Minimum History**: The segment must contain at least **12 consecutive monthly observations** ($N \ge 12$).
+2. **Variance Floor**: The standard deviation of the historical series must be strictly non-zero ($\sigma > 0$).
+3. **Gating Outcome**: Any segment failing this threshold is hard-gated out of forecasting models and outputs:
+   `"insufficient history to forecast"` — a prediction number is NEVER fabricated.
+
+## Evidence Grade Deterministic Formulation (Step 3)
+Evidence grades (A, B, C, or Insufficient) quantify the statistical reliability of each segment using a deterministic pipeline scoring function ($S \in [0, 100]$):
+
+$$S = S_{\text{volume}} + S_{\text{agreement}} + S_{\text{recency}}$$
+
+1. **Data Volume & Continuity ($S_{\text{volume}}$, max 40 points)**:
+   - $N \ge 24$ months: **40 pts**
+   - $18 \le N < 24$ months: **30 pts**
+   - $12 \le N < 18$ months: **20 pts**
+   - $N < 12$ months: **0 pts** (Sufficiency failure)
+
+2. **Cross-Source Signal Agreement ($S_{\text{agreement}}$, max 35 points)**:
+   - Postings demand trajectory aligns directionally with PLFS supply trend (concordant): **35 pts**
+   - Mild divergence (drift $\le 15\%$): **20 pts**
+   - Contradictory signals (divergence $> 15\%$): **5 pts**
+
+3. **Data Recency ($S_{\text{recency}}$, max 25 points)**:
+   - Latest observation vintage within 3 months: **25 pts**
+   - Latest observation vintage within 6 months: **15 pts**
+   - Older than 6 months: **5 pts**
+
+### Grade Mapping Thresholds:
+- **Grade A (High Evidence)**: $S \ge 80$. Reliable, robust cross-source backing. Demonstrates lowest backtest error.
+- **Grade B (Moderate Evidence)**: $60 \le S < 80$. Moderate cross-source convergence.
+- **Grade C (Low Evidence)**: $40 \le S < 60$. High variance or weak cross-source alignment; demonstrably higher backtest error.
+- **Insufficient**: Gated by Step 2 ($N < 12$); floor grade assigned regardless of recency or agreement.
+
