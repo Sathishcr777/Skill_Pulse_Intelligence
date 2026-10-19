@@ -14,6 +14,9 @@ import {
   Calculator,
   HelpCircle,
   Lightbulb,
+  Globe,
+  Box,
+  List,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +24,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { TimeSeriesChart } from "@/components/TimeSeriesChart"
 import { BacktestChart } from "@/components/BacktestChart"
 import { WhatIfSimulator } from "@/components/WhatIfSimulator"
+import { SkillUniverse3D } from "@/components/SkillUniverse3D"
+import { SkillUniverse2D, isWebGLAvailable } from "@/components/SkillUniverse2D"
 import { api, ApiError } from "@/lib/api"
 import {
   Region,
@@ -30,9 +35,10 @@ import {
   ModelStatusResponse,
   BacktestDetailResponse,
   DataTrustManifestResponse,
+  SkillGraphResponse,
 } from "@/types/api"
 
-type Tab = "forecast" | "radar" | "backtest" | "whatif" | "trust"
+type Tab = "forecast" | "radar" | "universe" | "backtest" | "whatif" | "trust"
 const HORIZON_OPTIONS = [3, 6, 9, 12] as const
 
 export const Dashboard: React.FC = () => {
@@ -213,6 +219,7 @@ export const Dashboard: React.FC = () => {
           {([
             ["forecast", "Forecast", TrendingUp],
             ["radar", "Opportunity Radar", Target],
+            ["universe", "Skill Universe", Globe],
             ["backtest", "Backtest", History],
             ["whatif", "What-If Simulator", Calculator],
             ["trust", "Data Trust Centre", ShieldCheck],
@@ -379,6 +386,8 @@ export const Dashboard: React.FC = () => {
         {activeTab === "radar" && marketOverview && (
           <OpportunityRadarPanel overview={marketOverview} onSelect={handleSelectSegment} />
         )}
+
+        {activeTab === "universe" && <SkillUniversePanel />}
 
         {activeTab === "whatif" &&
           (forecastDetail && forecastDetail.historical_series.length > 0 ? (
@@ -675,6 +684,95 @@ const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label,
     <span className="text-slate-300 text-right">{value}</span>
   </div>
 )
+
+/** Phase 4: Skill Relationship Universe. Fetches the real occupation<->skill
+ * graph once and renders it as either an interactive 3D scene or an
+ * accessible 2D table, auto-falling back to 2D when WebGL isn't available
+ * rather than showing a broken canvas. */
+const SkillUniversePanel: React.FC = () => {
+  const [graph, setGraph] = useState<SkillGraphResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [view, setView] = useState<"3d" | "2d">(isWebGLAvailable() ? "3d" : "2d")
+
+  useEffect(() => {
+    api
+      .skillGraph()
+      .then(setGraph)
+      .catch(() => setError("Could not load the skill graph from the API."))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const categories = useMemo(() => {
+    if (!graph) return []
+    return Array.from(new Set(graph.nodes.filter((n) => n.type === "occupation").map((n) => n.category)))
+  }, [graph])
+
+  if (loading) {
+    return (
+      <div className="h-72 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">
+        <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading skill graph...
+      </div>
+    )
+  }
+  if (error || !graph) {
+    return (
+      <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-rose-400 text-xs">
+        {error ?? "No graph data available."}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="bg-slate-900/60 border-slate-800/80">
+        <CardContent className="p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-slate-400">
+            <Globe className="w-4 h-4 text-indigo-400" />
+            <span>
+              <strong className="text-slate-200">{graph.occupation_count}</strong> occupations &middot;{" "}
+              <strong className="text-slate-200">{graph.skill_count}</strong> real O*NET-derived skills &middot;{" "}
+              <strong className="text-slate-200">{graph.edge_count}</strong> real required-skill relationships
+            </span>
+            <HelpTip text={graph.data_note} />
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setView("3d")}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 ${view === "3d" ? "bg-indigo-600 text-white" : "bg-slate-800/60 text-slate-400"}`}
+            >
+              <Box className="w-3 h-3" /> 3D
+            </button>
+            <button
+              onClick={() => setView("2d")}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 ${view === "2d" ? "bg-indigo-600 text-white" : "bg-slate-800/60 text-slate-400"}`}
+            >
+              <List className="w-3 h-3" /> 2D table
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-500/20 text-amber-200/80 text-[11px] flex items-start gap-2">
+        <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+        {graph.data_note}
+      </div>
+
+      {view === "3d" ? (
+        isWebGLAvailable() ? (
+          <SkillUniverse3D nodes={graph.nodes} edges={graph.edges} categories={categories} />
+        ) : (
+          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 text-amber-300 text-xs">
+            WebGL isn't available in this browser/device — showing the 2D table instead.
+            <SkillUniverse2D nodes={graph.nodes} edges={graph.edges} categories={categories} />
+          </div>
+        )
+      ) : (
+        <SkillUniverse2D nodes={graph.nodes} edges={graph.edges} categories={categories} />
+      )}
+    </div>
+  )
+}
 
 const ResultStat: React.FC<{ label: string; value: string; tone?: "emerald" | "amber" }> = ({ label, value, tone }) => (
   <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">

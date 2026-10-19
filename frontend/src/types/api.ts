@@ -191,3 +191,29 @@ export interface DataTrustManifestResponse {
   sources: DataSourceManifestItem[]
   panel_quality: PanelQualitySummary
 }
+
+export interface SkillGraphNode {
+  id: string
+  label: string
+  type: "occupation" | "skill"
+  category: string
+  size: number
+  meta: Record<string, any>
+}
+
+export interface SkillGraphEdge {
+  source: string
+  target: string
+  weight: number
+  relationship: string
+}
+
+export interface SkillGraphResponse {
+  nodes: SkillGraphNode[]
+  edges: SkillGraphEdge[]
+  node_count: number
+  edge_count: number
+  occupation_count: number
+  skill_count: number
+  data_note: string
+}

@@ -27,6 +27,7 @@ from backend.app.models.entities import (
     Skill,
 )
 from backend.app.services.data_trust import get_data_trust_manifest
+from backend.app.services.skill_graph import build_skill_graph
 from backend.app.schemas.market import (
     BacktestDetailResponse,
     BacktestPointResponse,
@@ -39,6 +40,7 @@ from backend.app.schemas.market import (
     ModelStatusResponse,
     OccupationResponse,
     RegionResponse,
+    SkillGraphResponse,
     SkillSummary,
     TradeDeficitItem,
 )
@@ -562,3 +564,12 @@ def get_data_trust():
     counts, missingness) read directly from the current panel file at
     request time - not a cached snapshot."""
     return DataTrustManifestResponse(**get_data_trust_manifest())
+
+
+@router.get("/skill-graph", response_model=SkillGraphResponse, tags=["Skills"])
+def get_skill_graph(db: Session = Depends(get_db)):
+    """Returns the real occupation<->skill relationship graph (24
+    occupations, their real O*NET-derived required skills, importance-
+    weighted). Does not include fabricated skill-to-skill co-occurrence -
+    see the service module docstring for why."""
+    return SkillGraphResponse(**build_skill_graph(db))

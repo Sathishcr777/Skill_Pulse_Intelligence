@@ -185,3 +185,29 @@ class DataTrustManifestResponse(BaseModel):
     generated_at: str
     sources: List[DataSourceManifestItem]
     panel_quality: PanelQualitySummary
+
+
+class SkillGraphNode(BaseModel):
+    id: str
+    label: str
+    type: str  # 'occupation' | 'skill'
+    category: str
+    size: int
+    meta: Dict[str, Any]
+
+
+class SkillGraphEdge(BaseModel):
+    source: str
+    target: str
+    weight: float
+    relationship: str
+
+
+class SkillGraphResponse(BaseModel):
+    nodes: List[SkillGraphNode]
+    edges: List[SkillGraphEdge]
+    node_count: int
+    edge_count: int
+    occupation_count: int
+    skill_count: int
+    data_note: str

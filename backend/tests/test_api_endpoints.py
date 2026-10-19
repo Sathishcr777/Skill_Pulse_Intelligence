@@ -414,3 +414,34 @@ def test_get_data_trust_manifest(client):
         "Panel columns should have zero missingness given rows are excluded "
         "rather than filled with nulls - a nonzero value here would be worth investigating."
     )
+
+
+# =========================================================================
+# 9. Skill Relationship Graph - real occupation<->skill edges only
+# =========================================================================
+def test_get_skill_graph(client):
+    response = client.get("/skill-graph")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["occupation_count"] == 24
+    assert data["skill_count"] > 0
+    assert data["edge_count"] > 0
+    assert len(data["nodes"]) == data["occupation_count"] + data["skill_count"]
+
+    node_ids = {n["id"] for n in data["nodes"]}
+    occupation_node_ids = {n["id"] for n in data["nodes"] if n["type"] == "occupation"}
+    skill_node_ids = {n["id"] for n in data["nodes"] if n["type"] == "skill"}
+    assert len(occupation_node_ids) == 24
+
+    # Every edge must reference real nodes that exist in the node list, and
+    # must connect an occupation to a skill (not skill-to-skill, which this
+    # project does not have real data to support).
+    for edge in data["edges"]:
+        assert edge["source"] in node_ids
+        assert edge["target"] in node_ids
+        assert edge["source"] in occupation_node_ids
+        assert edge["target"] in skill_node_ids
+        assert 0.0 <= edge["weight"] <= 1.0
+
+    assert "co-occurrence" in data["data_note"] or "sparse" in data["data_note"]

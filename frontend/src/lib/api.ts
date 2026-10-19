@@ -6,6 +6,7 @@ import {
   ModelStatusResponse,
   BacktestDetailResponse,
   DataTrustManifestResponse,
+  SkillGraphResponse,
 } from "@/types/api"
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
@@ -51,4 +52,5 @@ export const api = {
   backtest: (nco: number, region: string) =>
     get<BacktestDetailResponse>(`/backtest/${nco}/${region}`),
   dataTrust: () => get<DataTrustManifestResponse>("/data-trust"),
+  skillGraph: () => get<SkillGraphResponse>("/skill-graph"),
 }
