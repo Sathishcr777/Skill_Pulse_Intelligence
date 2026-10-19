@@ -132,7 +132,7 @@ export const TimeSeriesChart: React.FC<Props> = ({
             {occupationTitle} &middot; {stateCode}
           </h3>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            Historical series + 6-month forecast with confidence band. Solid = actual, dashed = forecast.
+            Historical series + {forecastData.length}-month forecast with confidence band. Solid = actual, dashed = forecast.
           </p>
         </div>
         <div className="flex items-center gap-2">

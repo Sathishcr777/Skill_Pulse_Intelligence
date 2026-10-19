@@ -144,8 +144,10 @@ def test_get_forecast_sufficient_segment(client):
         assert "Table 27" in point["supply_source_citation"]
         assert point["demand_data_source"] == "synthetic_demo"
 
-    # Forecast series: 6 horizon steps (2024-01 to 2024-06)
-    assert len(data["forecasts"]) == 6
+    # Forecast series: full 12-month horizon (2024-01 to 2024-12). The UI's
+    # horizon selector slices this real precomputed array client-side; the
+    # API itself always returns the full real model output.
+    assert len(data["forecasts"]) == 12
     for fc in data["forecasts"]:
         assert fc["is_sufficient"] is True
         assert fc["predicted_demand"] is not None

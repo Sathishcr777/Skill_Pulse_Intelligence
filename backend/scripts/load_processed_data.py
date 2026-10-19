@@ -569,13 +569,20 @@ def load_data(db_url: str):
             ).all()
         }
 
+        # 12-month horizon (not 6): a workforce-planning cycle is typically
+        # annual (see docs/problem_statement_analysis.md - seat allocation
+        # misalignment is discovered only after a placement cycle ends), and
+        # a 12-month precomputed array lets the UI offer a real,
+        # model-backed horizon selector (3/6/9/12 months) by slicing this
+        # array client-side, rather than inventing numbers for horizons the
+        # model was never asked to predict.
+        FORECAST_HORIZON_MONTHS = 12
         forecast_months = [
-            ("2024-01", datetime(2024, 1, 1, tzinfo=timezone.utc)),
-            ("2024-02", datetime(2024, 2, 1, tzinfo=timezone.utc)),
-            ("2024-03", datetime(2024, 3, 1, tzinfo=timezone.utc)),
-            ("2024-04", datetime(2024, 4, 1, tzinfo=timezone.utc)),
-            ("2024-05", datetime(2024, 5, 1, tzinfo=timezone.utc)),
-            ("2024-06", datetime(2024, 6, 1, tzinfo=timezone.utc)),
+            (
+                f"2024-{m:02d}",
+                datetime(2024, m, 1, tzinfo=timezone.utc),
+            )
+            for m in range(1, FORECAST_HORIZON_MONTHS + 1)
         ]
 
         forecasts_to_add: List[Forecast] = []
@@ -614,7 +621,7 @@ def load_data(db_url: str):
                     existing_forecasts.add(fc_key)
             else:
                 # Sufficient Series: Predict 6 steps ahead
-                preds = candidate_model.predict(steps=6)
+                preds = candidate_model.predict(steps=len(forecast_months))
                 hist_std = float(np.std(group["demand_count"]))
 
                 for step_idx, (ym, dt) in enumerate(forecast_months):

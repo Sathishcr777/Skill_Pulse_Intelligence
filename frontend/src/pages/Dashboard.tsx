@@ -11,12 +11,16 @@ import {
   CheckCircle2,
   XCircle,
   Database,
+  Calculator,
+  HelpCircle,
+  Lightbulb,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { TimeSeriesChart } from "@/components/TimeSeriesChart"
 import { BacktestChart } from "@/components/BacktestChart"
+import { WhatIfSimulator } from "@/components/WhatIfSimulator"
 import { api, ApiError } from "@/lib/api"
 import {
   Region,
@@ -27,7 +31,8 @@ import {
   BacktestDetailResponse,
 } from "@/types/api"
 
-type Tab = "forecast" | "radar" | "backtest" | "trust"
+type Tab = "forecast" | "radar" | "backtest" | "whatif" | "trust"
+const HORIZON_OPTIONS = [3, 6, 9, 12] as const
 
 export const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>("forecast")
@@ -35,6 +40,7 @@ export const Dashboard: React.FC = () => {
   const [selectedOccupationCode, setSelectedOccupationCode] = useState<number>(7411.01)
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL")
   const [searchQuery, setSearchQuery] = useState<string>("")
+  const [horizonMonths, setHorizonMonths] = useState<number>(6)
 
   const [regions, setRegions] = useState<Region[]>([])
   const [occupations, setOccupations] = useState<Occupation[]>([])
@@ -207,13 +213,14 @@ export const Dashboard: React.FC = () => {
             ["forecast", "Forecast", TrendingUp],
             ["radar", "Opportunity Radar", Target],
             ["backtest", "Backtest", History],
+            ["whatif", "What-If Simulator", Calculator],
             ["trust", "Data Trust Centre", ShieldCheck],
           ] as [Tab, string, any][]).map(([tab, label, Icon]) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap ${
-                activeTab === tab ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition-all duration-150 ${
+                activeTab === tab ? "bg-indigo-600 text-white shadow-lg shadow-indigo-950/40" : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -222,7 +229,7 @@ export const Dashboard: React.FC = () => {
           ))}
         </div>
 
-        {(activeTab === "forecast" || activeTab === "backtest") && (
+        {(activeTab === "forecast" || activeTab === "backtest" || activeTab === "whatif") && (
           <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-3">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
@@ -294,14 +301,35 @@ export const Dashboard: React.FC = () => {
           ) : forecastDetail ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+                    Forecast horizon
+                    <HelpTip text="How many months ahead to show. The model always produces the full 12-month forecast — this only changes how much of it is displayed." />
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {HORIZON_OPTIONS.map((h) => (
+                      <button
+                        key={h}
+                        onClick={() => setHorizonMonths(h)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                          horizonMonths === h ? "bg-cyan-600 text-white" : "bg-slate-800/60 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        {h}mo
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <TimeSeriesChart
                   historicalData={forecastDetail.historical_series}
-                  forecastData={forecastDetail.forecasts}
+                  forecastData={forecastDetail.forecasts.slice(0, horizonMonths)}
                   isSufficient={forecastDetail.is_sufficient}
                   gatingReason={forecastDetail.gating_reason}
                   stateCode={forecastDetail.region.state_code}
                   occupationTitle={forecastDetail.occupation.title}
                 />
+                <InsightExplanationPanel forecastDetail={forecastDetail} backtestDetail={backtestDetail} />
+                <WorkforceGapPanel forecastDetail={forecastDetail} />
               </div>
               <div className="space-y-4">
                 <Card className="bg-slate-900/60 border-slate-800/80">
@@ -350,6 +378,21 @@ export const Dashboard: React.FC = () => {
         {activeTab === "radar" && marketOverview && (
           <OpportunityRadarPanel overview={marketOverview} onSelect={handleSelectSegment} />
         )}
+
+        {activeTab === "whatif" &&
+          (forecastDetail && forecastDetail.historical_series.length > 0 ? (
+            <WhatIfSimulator
+              baselineDemand={forecastDetail.historical_series[forecastDetail.historical_series.length - 1].demand_index}
+              baselineSupply={forecastDetail.historical_series[forecastDetail.historical_series.length - 1].supply_index}
+              occupationTitle={forecastDetail.occupation.title}
+              stateCode={forecastDetail.region.state_code}
+              dataVintage={forecastDetail.data_vintage}
+            />
+          ) : (
+            <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
+              Select a state and occupation on the Forecast tab first to run a scenario.
+            </div>
+          ))}
 
         {activeTab === "backtest" &&
           (loadingBacktest ? (
@@ -544,5 +587,119 @@ const TrustRow: React.FC<{ label: string; status: "verified" | "synthetic" | "pa
       </div>
       <div className="text-slate-500">{detail}</div>
     </div>
+  )
+}
+
+/** Phase 7 contextual help: a small inline "?" that reveals a definition on
+ * hover/focus, so technical terms (MAE, evidence grade, supply proxy...)
+ * don't need a permanent block of prose cluttering the main view. */
+const HelpTip: React.FC<{ text: string }> = ({ text }) => (
+  <span className="group relative inline-flex">
+    <HelpCircle className="w-3 h-3 text-slate-500 hover:text-slate-300 cursor-help" />
+    <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-56 p-2 rounded-lg bg-slate-900 border border-slate-700 text-[10px] text-slate-300 font-normal opacity-0 group-hover:opacity-100 transition-opacity z-30 shadow-xl">
+      {text}
+    </span>
+  </span>
+)
+
+/** Feature G: Insight Explanation Panel. Everything here is read directly
+ * off forecastDetail/backtestDetail - no invented causal narrative. */
+const InsightExplanationPanel: React.FC<{
+  forecastDetail: ForecastDetailResponse
+  backtestDetail: BacktestDetailResponse | null
+}> = ({ forecastDetail, backtestDetail }) => {
+  const latest = forecastDetail.historical_series[forecastDetail.historical_series.length - 1]
+  const earliest = forecastDetail.historical_series[0]
+  const gapDirection = latest && latest.net_gap > 0 ? "a shortage (demand above supply)" : "a surplus (supply above demand)"
+  const trendDirection =
+    latest && earliest ? (latest.demand_index > earliest.demand_index ? "risen" : latest.demand_index < earliest.demand_index ? "fallen" : "stayed flat")
+      : "unknown"
+
+  return (
+    <Card className="bg-slate-900/60 border-slate-800/80">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Lightbulb className="w-4 h-4 text-amber-400" />
+          What this means
+        </CardTitle>
+        <CardDescription className="text-[11px]">Generated from the actual values on screen — not an invented explanation</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2 text-xs text-slate-300">
+        <p>
+          <strong className="text-slate-100">What the data indicates:</strong> over the {forecastDetail.historical_series.length}-month
+          observed window ({earliest?.year_month} &ndash; {latest?.year_month}), demand for{" "}
+          <strong>{forecastDetail.occupation.title}</strong> in {forecastDetail.region.state_name} has {trendDirection}, and the
+          latest observation shows {gapDirection} of {latest ? Math.abs(latest.net_gap).toFixed(1) : "—"} index points.
+        </p>
+        <p>
+          <strong className="text-slate-100">What the model indicates:</strong>{" "}
+          {forecastDetail.is_sufficient
+            ? `a ${forecastDetail.evidence_grade.score >= 80 ? "high" : "moderate"}-confidence forecast is available (Grade ${forecastDetail.evidence_grade.grade}), based on ${forecastDetail.evidence_grade.observations_count} real observations.`
+            : `no forecast was produced — ${forecastDetail.gating_reason ?? "insufficient history"}. The system does not fabricate a number here.`}
+        </p>
+        {backtestDetail && backtestDetail.backtest_steps > 0 && (
+          <p>
+            <strong className="text-slate-100">How the model performed historically:</strong> across {backtestDetail.backtest_steps} real
+            backtest steps, the candidate model's mean absolute error was {backtestDetail.candidate_mean_abs_error?.toFixed(2)}, versus{" "}
+            {backtestDetail.baseline_mean_abs_error?.toFixed(2)} for the naive baseline (
+            {backtestDetail.candidate_mean_abs_error! < backtestDetail.baseline_mean_abs_error! ? "candidate wins" : "baseline wins"} on this segment).
+          </p>
+        )}
+        <p>
+          <strong className="text-slate-100">What remains uncertain:</strong> the demand series here is a synthetic demonstration
+          signal (see Data Trust Centre), so this specific trend should be read as illustrative of the pipeline's behaviour, not as a
+          validated real-world trend. The supply figure is a real, verified PLFS state-level employment share, not a monthly or
+          district-level observation.
+        </p>
+        <p className="text-slate-500">
+          <strong className="text-slate-400">Investigate next:</strong> compare this segment's evidence grade against its real
+          backtest error on the Backtest tab, or check the Opportunity Radar to see how this segment ranks against others.
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Feature E: Workforce Gap Analysis, as its own panel with explicit units,
+ * definitions, and limitations rather than a bare number. */
+const WorkforceGapPanel: React.FC<{ forecastDetail: ForecastDetailResponse }> = ({ forecastDetail }) => {
+  const latest = forecastDetail.historical_series[forecastDetail.historical_series.length - 1]
+  if (!latest) return null
+  return (
+    <Card className="bg-slate-900/60 border-slate-800/80">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Workforce Gap Analysis</CardTitle>
+        <CardDescription className="text-[11px]">Demand vs. a defensible supply proxy — not an exact worker count</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2 text-xs">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
+            <div className="text-slate-400 flex items-center gap-1">
+              Demand measure <HelpTip text="A demonstration index derived from the verified supply baseline plus a documented synthetic trend/seasonality generator. Not a real job-postings count." />
+            </div>
+            <div className="font-mono text-lg font-bold text-emerald-400 mt-1">{latest.demand_index.toFixed(1)}</div>
+            <div className="text-[10px] text-slate-500 mt-1">Unit: demonstration index &middot; {latest.year_month}</div>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
+            <div className="text-slate-400 flex items-center gap-1">
+              Supply measure <HelpTip text="Real PLFS Annual Report 2023-24, Table 27 state-level industry employment share. An annual labour-force statistic, not a monthly figure and not a count of qualified/trained workers." />
+            </div>
+            <div className="font-mono text-lg font-bold text-indigo-400 mt-1">{latest.supply_index.toFixed(1)}</div>
+            <div className="text-[10px] text-slate-500 mt-1">Unit: % industry employment share &middot; annual</div>
+          </div>
+        </div>
+        <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
+          <div className="text-slate-400">Coverage</div>
+          <div className="text-slate-200 mt-0.5">
+            {forecastDetail.region.state_name}, {forecastDetail.occupation.trade_category} &middot; {forecastDetail.historical_series.length} monthly observations
+          </div>
+        </div>
+        <div className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-500/20 text-amber-200/90">
+          <strong>Limitation:</strong> these two measures are not on a directly comparable real-world unit (a demonstration index vs. a
+          real percentage share) — the net gap shown is a relative indicator for this demo, not a literal worker-count shortfall. Do not
+          treat the supply figure as an exact count of qualified workers available for this occupation.
+        </div>
+      </CardContent>
+    </Card>
   )
 }
