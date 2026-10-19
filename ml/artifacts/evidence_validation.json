@@ -1,0 +1,19 @@
+{
+  "status": "computed",
+  "mean_abs_error_by_grade": {
+    "A": {
+      "mean_abs_error": 5.301,
+      "std_abs_error": 2.221,
+      "n_segments": 49
+    },
+    "B": {
+      "mean_abs_error": 5.722,
+      "std_abs_error": 2.051,
+      "n_segments": 138
+    }
+  },
+  "spearman_like_rank_correlation_score_vs_error": -0.107,
+  "grade_order_is_monotonic_increasing_error": true,
+  "hypothesis_low_evidence_means_higher_error_supported": true,
+  "n_sufficient_graded_segments": 187
+}

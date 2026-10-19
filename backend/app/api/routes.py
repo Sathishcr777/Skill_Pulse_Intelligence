@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from backend.app.core.database import get_db
 from backend.app.models.entities import (
+    BacktestPoint,
     EmploymentSeries,
     EvidenceGrade,
     Forecast,
@@ -26,6 +27,8 @@ from backend.app.models.entities import (
     Skill,
 )
 from backend.app.schemas.market import (
+    BacktestDetailResponse,
+    BacktestPointResponse,
     EvidenceGradeSummary,
     ForecastDataPoint,
     ForecastDetailResponse,
@@ -439,6 +442,9 @@ def get_model_status(db: Session = Depends(get_db)):
             grade_distribution=grade_dist,
             category_metrics=cat_metrics,
             artifact_path=latest_run.artifact_path,
+            evidence_grade_validation=(
+                json.loads(latest_run.evidence_validation_json) if latest_run.evidence_validation_json else None
+            ),
         )
 
     # Fallback to reading metadata.json directly if DB has no model run record
@@ -451,6 +457,12 @@ def get_model_status(db: Session = Depends(get_db)):
 
     with open(meta_path, "r", encoding="utf-8") as f:
         meta = json.load(f)
+
+    validation_path = os.path.abspath("ml/artifacts/evidence_validation.json")
+    evidence_validation = None
+    if os.path.exists(validation_path):
+        with open(validation_path, "r", encoding="utf-8") as vf:
+            evidence_validation = json.load(vf)
 
     eval_b = meta.get("overall_evaluation", {})
     return ModelStatusResponse(
@@ -467,4 +479,75 @@ def get_model_status(db: Session = Depends(get_db)):
         grade_distribution=meta.get("evidence_grading", {}).get("grade_distribution", {}),
         category_metrics=eval_b.get("category_metrics", {}),
         artifact_path=meta.get("artifact_paths", {}).get("model_path"),
+        evidence_grade_validation=evidence_validation,
+    )
+
+
+@router.get("/backtest/{occupation}/{region}", response_model=BacktestDetailResponse, tags=["Backtest"])
+def get_backtest(
+    occupation: str,
+    region: str,
+    db: Session = Depends(get_db),
+):
+    """Returns the real, out-of-sample walk-forward backtest replay for a
+    state x occupation segment: what the model would have predicted at each
+    historical step using only data available up to that point, vs. what
+    actually happened. Computed by ml/evaluate/backtest.py - never fabricated."""
+    reg = resolve_region(region, db)
+    occ = resolve_occupation(occupation, db)
+
+    eg = db.scalars(
+        select(EvidenceGrade).where(
+            EvidenceGrade.region_id == reg.id,
+            EvidenceGrade.occupation_id == occ.id,
+        )
+    ).first()
+
+    if not eg:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No evidence grade found for occupation '{occupation}' in region '{region}'.",
+        )
+
+    stmt_pts = (
+        select(BacktestPoint)
+        .where(BacktestPoint.region_id == reg.id, BacktestPoint.occupation_id == occ.id)
+        .order_by(BacktestPoint.year_month)
+    )
+    pt_records = db.scalars(stmt_pts).all()
+
+    points = [
+        BacktestPointResponse(
+            year_month=p.year_month,
+            actual=p.actual,
+            baseline_prediction=p.baseline_prediction,
+            candidate_prediction=p.candidate_prediction,
+            baseline_abs_error=p.baseline_abs_error,
+            candidate_abs_error=p.candidate_abs_error,
+        )
+        for p in pt_records
+    ]
+
+    return BacktestDetailResponse(
+        region=RegionResponse.model_validate(reg),
+        occupation=OccupationResponse(
+            id=occ.id,
+            nco_code=occ.nco_code,
+            nco_code_str=occ.nco_code_str,
+            title=occ.title,
+            trade_category=occ.trade_category,
+            division=occ.division,
+            sub_division=occ.sub_division,
+            group_code=occ.group_code,
+            family=occ.family,
+            description=occ.description,
+            skills=[],
+        ),
+        evidence_grade=eg.grade,
+        evidence_score=eg.score,
+        backtest_steps=eg.backtest_steps or 0,
+        candidate_mean_abs_error=eg.backtest_candidate_mean_abs_error,
+        baseline_mean_abs_error=eg.backtest_baseline_mean_abs_error,
+        points=points,
+        data_vintage=eg.data_vintage,
     )

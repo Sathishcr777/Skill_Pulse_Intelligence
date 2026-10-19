@@ -322,3 +322,57 @@ def test_get_model_status(client):
 
     assert sum(data["grade_distribution"].values()) == 192
     assert data["grade_distribution"]["Insufficient"] == meta["sufficiency_gating"]["excluded_segments_count"]
+
+    # Real evidence-grade-vs-backtest-error validation result must be present
+    # and must not have been fabricated or omitted (ml/evaluate/backtest.py).
+    validation = data["evidence_grade_validation"]
+    assert validation is not None
+    assert validation["status"] == "computed"
+    assert validation["n_sufficient_graded_segments"] > 0
+    assert "mean_abs_error_by_grade" in validation
+    assert "hypothesis_low_evidence_means_higher_error_supported" in validation
+
+
+# =========================================================================
+# 7. Backtest Tests - real walk-forward replay, not fabricated
+# =========================================================================
+def test_get_backtest_sufficient_segment(client):
+    response = client.get("/backtest/7411.01/MH")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["region"]["state_code"] == "MH"
+    assert data["occupation"]["nco_code"] == 7411.01
+    assert data["evidence_grade"] in ["A", "B", "C"]
+    assert data["backtest_steps"] > 0
+    assert len(data["points"]) == data["backtest_steps"]
+    assert data["candidate_mean_abs_error"] is not None
+    assert data["baseline_mean_abs_error"] is not None
+
+    # Every point is a real walk-forward prediction: actual + both model
+    # predictions + their real computed errors, in chronological order.
+    prev_ym = None
+    for pt in data["points"]:
+        assert pt["baseline_abs_error"] == pytest.approx(abs(pt["actual"] - pt["baseline_prediction"]), abs=0.01)
+        assert pt["candidate_abs_error"] == pytest.approx(abs(pt["actual"] - pt["candidate_prediction"]), abs=0.01)
+        if prev_ym is not None:
+            assert pt["year_month"] > prev_ym, "Backtest points must be in chronological order"
+        prev_ym = pt["year_month"]
+
+
+def test_get_backtest_insufficient_segment_has_no_points(client):
+    state_code, nco_code = _find_insufficient_segment()
+    response = client.get(f"/backtest/{nco_code}/{state_code}")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["evidence_grade"] == "Insufficient"
+    assert data["backtest_steps"] == 0
+    assert data["points"] == []
+    assert data["candidate_mean_abs_error"] is None
+    assert data["baseline_mean_abs_error"] is None
+
+
+def test_get_backtest_unknown_segment_returns_404(client):
+    response = client.get("/backtest/7411.01/NONEXISTENT_STATE")
+    assert response.status_code == 404

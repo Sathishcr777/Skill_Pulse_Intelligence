@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from backend.app.core.config import settings
 from backend.app.core.database import Base
 from backend.app.models.entities import (
+    BacktestPoint,
     EmploymentSeries,
     EvidenceGrade,
     Forecast,
@@ -196,6 +197,21 @@ def load_data(db_url: str):
             raise FileNotFoundError(f"panel.parquet not found at {panel_path}")
 
         panel_df = pd.read_parquet(panel_path)
+
+        # Real backtest outputs (ml/evaluate/backtest.py). Optional at this
+        # point in the ETL for backward compatibility, but required for
+        # evidence-grade backtest fields and the /backtest API to be populated.
+        backtest_points_path = os.path.abspath("data/processed/backtest_points.parquet")
+        backtest_summary_path = os.path.abspath("data/processed/backtest_segment_summary.parquet")
+        backtest_points_df = pd.read_parquet(backtest_points_path) if os.path.exists(backtest_points_path) else None
+        backtest_summary_df = pd.read_parquet(backtest_summary_path) if os.path.exists(backtest_summary_path) else None
+        if backtest_summary_df is None:
+            logger.warning(
+                "data/processed/backtest_segment_summary.parquet not found - run "
+                "`python -m ml.evaluate.backtest` first. Evidence grades will load without "
+                "backtest error fields, and the backtest_points table will stay empty."
+            )
+
         existing_regions = {r.state_code: r for r in session.scalars(select(Region)).all()}
         unique_regions = panel_df[["state_code", "state_name"]].drop_duplicates()
 
@@ -440,11 +456,21 @@ def load_data(db_url: str):
             session.flush()
             stats["postings_signals_inserted"] += len(signals_to_add)
 
-        # 6. Ingest Evidence Grades
+        # 6. Ingest Evidence Grades (with real backtest error fields when available)
         logger.info("Step 6: Loading deterministic evidence grades...")
         existing_grades = {
             (g.region_id, g.occupation_id): g for g in session.scalars(select(EvidenceGrade)).all()
         }
+
+        backtest_lookup: Dict[tuple, Dict[str, Any]] = {}
+        if backtest_summary_df is not None:
+            for _, brow in backtest_summary_df.iterrows():
+                bkey = (str(brow["state_code"]).strip(), round(float(brow["nco_code"]), 2))
+                backtest_lookup[bkey] = {
+                    "steps": int(brow["backtest_steps"]) if pd.notnull(brow["backtest_steps"]) else None,
+                    "candidate_mae": float(brow["candidate_mean_abs_error"]) if pd.notnull(brow["candidate_mean_abs_error"]) else None,
+                    "baseline_mae": float(brow["baseline_mean_abs_error"]) if pd.notnull(brow["baseline_mean_abs_error"]) else None,
+                }
 
         # Group panel by state and occupation to compute evidence grades
         for (st_code, nco_val), group in panel_df.groupby(["state_code", "nco_code"]):
@@ -471,6 +497,7 @@ def load_data(db_url: str):
             )
 
             comps = eg_result.get("components", {})
+            bt = backtest_lookup.get((str(st_code).strip(), round(float(nco_val), 2)), {})
             eg = EvidenceGrade(
                 region_id=reg.id,
                 occupation_id=occ.id,
@@ -484,12 +511,50 @@ def load_data(db_url: str):
                 is_sufficient=eg_result["sufficient"],
                 gating_reason=eg_result.get("gate_reason") if not eg_result["sufficient"] else None,
                 data_vintage="2023-12-31",
+                backtest_steps=bt.get("steps"),
+                backtest_candidate_mean_abs_error=bt.get("candidate_mae"),
+                backtest_baseline_mean_abs_error=bt.get("baseline_mae"),
             )
             session.add(eg)
             existing_grades[grade_key] = eg
             stats["evidence_grades_inserted"] += 1
 
         session.flush()
+
+        # 6b. Ingest real backtest points (per-step walk-forward predictions)
+        logger.info("Step 6b: Loading real backtest points...")
+        stats["backtest_points_inserted"] = 0
+        if backtest_points_df is not None:
+            existing_bt_points = {
+                (p.region_id, p.occupation_id, p.year_month)
+                for p in session.query(
+                    BacktestPoint.region_id, BacktestPoint.occupation_id, BacktestPoint.year_month
+                ).all()
+            }
+            bt_points_to_add: List[BacktestPoint] = []
+            for _, prow in backtest_points_df.iterrows():
+                reg = existing_regions.get(str(prow["state_code"]).strip())
+                occ = occ_by_code.get(round(float(prow["nco_code"]), 2))
+                if not reg or not occ:
+                    continue
+                key = (reg.id, occ.id, str(prow["year_month"]))
+                if key in existing_bt_points:
+                    continue
+                bt_points_to_add.append(BacktestPoint(
+                    region_id=reg.id,
+                    occupation_id=occ.id,
+                    year_month=str(prow["year_month"]),
+                    actual=float(prow["actual"]),
+                    baseline_prediction=float(prow["baseline_prediction"]),
+                    candidate_prediction=float(prow["candidate_prediction"]),
+                    baseline_abs_error=float(prow["baseline_abs_error"]),
+                    candidate_abs_error=float(prow["candidate_abs_error"]),
+                ))
+                existing_bt_points.add(key)
+            if bt_points_to_add:
+                session.bulk_save_objects(bt_points_to_add)
+                session.flush()
+                stats["backtest_points_inserted"] = len(bt_points_to_add)
 
         # 7. Ingest Forecasts (6-month ahead horizon: 2024-01 to 2024-06)
         logger.info("Step 7: Generating and loading 6-month ahead forecasts from best forecaster artifact...")
@@ -594,6 +659,18 @@ def load_data(db_url: str):
                 eval_block = meta.get("overall_evaluation", {})
                 b_metrics = eval_block.get("baseline_metrics", {})
                 c_metrics = eval_block.get("candidate_metrics", {})
+
+                validation_json_path = os.path.abspath("ml/artifacts/evidence_validation.json")
+                evidence_validation_json = None
+                if os.path.exists(validation_json_path):
+                    with open(validation_json_path, "r", encoding="utf-8") as vf:
+                        evidence_validation_json = vf.read()
+                else:
+                    logger.warning(
+                        "ml/artifacts/evidence_validation.json not found - run "
+                        "`python -m ml.evaluate.backtest` first. model_runs.evidence_validation_json will be null."
+                    )
+
                 mr = ModelRun(
                     run_id=run_id,
                     pipeline_version=meta.get("pipeline_version", "1.0.0"),
@@ -614,6 +691,7 @@ def load_data(db_url: str):
                     grade_distribution=json.dumps(meta.get("evidence_grading", {}).get("grade_distribution", {})),
                     category_metrics=json.dumps(eval_block.get("category_metrics", {})),
                     artifact_path=meta.get("artifact_paths", {}).get("model_path"),
+                    evidence_validation_json=evidence_validation_json,
                 )
                 session.add(mr)
                 session.flush()

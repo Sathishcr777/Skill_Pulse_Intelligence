@@ -133,3 +133,27 @@ class ModelStatusResponse(BaseModel):
     grade_distribution: Dict[str, int]
     category_metrics: Dict[str, Any]
     artifact_path: Optional[str] = None
+    evidence_grade_validation: Optional[Dict[str, Any]] = None
+
+
+class BacktestPointResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    year_month: str
+    actual: float
+    baseline_prediction: float
+    candidate_prediction: float
+    baseline_abs_error: float
+    candidate_abs_error: float
+
+
+class BacktestDetailResponse(BaseModel):
+    region: RegionResponse
+    occupation: OccupationResponse
+    evidence_grade: str
+    evidence_score: float
+    backtest_steps: int
+    candidate_mean_abs_error: Optional[float] = None
+    baseline_mean_abs_error: Optional[float] = None
+    points: List[BacktestPointResponse]
+    data_vintage: str

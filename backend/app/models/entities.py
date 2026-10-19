@@ -210,6 +210,11 @@ class EvidenceGrade(Base):
     is_sufficient = Column(Boolean, default=True, nullable=False)
     gating_reason = Column(String(255), nullable=True)
     data_vintage = Column(String(20), default="2023-12-31")
+    # Real walk-forward backtest results for this segment (ml/evaluate/backtest.py).
+    # Null when the segment is insufficient (no backtest steps exist).
+    backtest_steps = Column(Integer, nullable=True)
+    backtest_candidate_mean_abs_error = Column(Float, nullable=True)
+    backtest_baseline_mean_abs_error = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now())
 
     __table_args__ = (
@@ -246,4 +251,33 @@ class ModelRun(Base):
     grade_distribution = Column(Text, nullable=False)  # JSON-serialized dict
     category_metrics = Column(Text, nullable=False)  # JSON-serialized dict
     artifact_path = Column(String(255), nullable=True)
+    # Real evidence-grade-vs-backtest-error validation result (ml/evaluate/backtest.py).
+    # Reported honestly whatever it shows - see docs/evidence_grade_validation_result.md.
+    evidence_validation_json = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now())
+
+
+class BacktestPoint(Base):
+    """A single real, out-of-sample walk-forward prediction vs. what
+    actually happened - the raw material the Backtest UI replays."""
+
+    __tablename__ = "backtest_points"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    region_id = Column(Integer, ForeignKey("regions.id"), nullable=False, index=True)
+    occupation_id = Column(Integer, ForeignKey("occupations.id"), nullable=False, index=True)
+    year_month = Column(String(7), nullable=False, index=True)
+    actual = Column(Float, nullable=False)
+    baseline_prediction = Column(Float, nullable=False)
+    candidate_prediction = Column(Float, nullable=False)
+    baseline_abs_error = Column(Float, nullable=False)
+    candidate_abs_error = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("region_id", "occupation_id", "year_month", name="uq_backtest_point_reg_occ_month"),
+        Index("ix_backtest_point_lookup", "region_id", "occupation_id"),
+    )
+
+    region = relationship("Region")
+    occupation = relationship("Occupation")
