@@ -100,7 +100,7 @@ This document reports observed, verified facts regarding data acquisition for Sk
   5. Upon approval by MoSPI Data Dissemination Section, download the raw ASCII fixed-width `.TXT` / Stata `.DTA` files.
   6. Place the raw files into `data/raw/plfs/`.
 - **Impact on Product & Workaround**:
-  PLFS employment is our real supply proxy. To adhere to Rule 3 and Rule 4 (never fabricate data), the project will digitize official aggregate baseline tables from the published MoSPI PLFS Annual Report (State x NCO Division/Group employment counts) rather than inventing unverified synthetic person-level microdata survey weights.
+  PLFS employment is our real supply proxy. Unit-level microdata remains BLOCKED as described above. **UPDATE (2026-10-20):** a prior implementation had silently substituted a fabricated benchmark dict in place of this intended workaround, presented as if it were real PLFS data - this has since been corrected. The aggregate-table digitization described here has now actually been carried out: verified, cited state x NIC-2008-industry-section percentages from the published **PLFS Annual Report 2023-24, Table 27** (not unit-level microdata) are now used as the real supply proxy. Full citation, exact figures, methodology, and disclosed limitations are in `docs/data_integrity_audit.md`.
 
 ---
 

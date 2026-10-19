@@ -123,6 +123,9 @@ class EmploymentSeries(Base):
     demand_index = Column(Float, nullable=False)  # Job vacancies demand signal
     net_gap = Column(Float, nullable=False)  # demand_index - supply_index
     data_vintage = Column(String(20), nullable=False)  # Historical observation vintage date
+    supply_data_source = Column(String(30), nullable=False, default="unavailable")  # 'verified_real' | 'unavailable'
+    supply_source_citation = Column(Text, nullable=True)  # full citation for supply_index, when verified_real
+    demand_data_source = Column(String(30), nullable=False, default="synthetic_demo")  # 'verified_real' | 'synthetic_demo'
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now())
 
     __table_args__ = (
@@ -148,6 +151,7 @@ class PostingsSkillSignal(Base):
     mention_count = Column(Integer, default=1, nullable=False)
     frequency_pct = Column(Float, default=0.0, nullable=False)
     data_vintage = Column(String(20), default="2023-12-31")
+    data_source = Column(String(30), nullable=False, default="unavailable")  # 'verified_real' | 'unavailable'
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now())
 
     __table_args__ = (

@@ -8,13 +8,13 @@ Computed empirical characteristics of `data/processed/panel.parquet` for SkillPu
 
 | Dimension | Real Value | Description |
 |---|---|---|
-| **Total Panel Rows** | 4,504 | Total monthly state x occupation observations |
+| **Total Panel Rows** | 4,454 | Total monthly state x occupation observations |
 | **Geographic Coverage** | 8 States | Priority industrial & skill hubs: MH, KA, TN, GJ, UP, HR, DL, TG |
 | **Occupational Coverage** | 24 Occupations | Standardized NCO-2015 ITI/PMKVY & IT/ITES subset |
 | **Temporal Range** | 2022-01-01 to 2023-12-01 | 24 consecutive monthly periods |
 | **Total Distinct Segments** | 192 segments | Distinct (state x occupation) series |
-| **Statistically Sufficient Segments (>=12 obs)** | 188 segments | Pass minimum-history sufficiency gate |
-| **Statistically Insufficient Segments (<12 obs)** | 4 segments | Gated out of forecasting per Rule 7 |
+| **Statistically Sufficient Segments (>=12 obs)** | 187 segments | Pass minimum-history sufficiency gate |
+| **Statistically Insufficient Segments (<12 obs)** | 5 segments | Gated out of forecasting per Rule 7 |
 
 ---
 
@@ -45,6 +45,9 @@ Computed empirical characteristics of `data/processed/panel.parquet` for SkillPu
 | `plfs_supply_proxy` | 0 | 0.00% |
 | `net_gap` | 0 | 0.00% |
 | `data_vintage` | 0 | 0.00% |
+| `supply_data_source` | 0 | 0.00% |
+| `supply_source_citation` | 0 | 0.00% |
+| `demand_data_source` | 0 | 0.00% |
 | `series_length` | 0 | 0.00% |
 
 ---
@@ -53,12 +56,25 @@ Computed empirical characteristics of `data/processed/panel.parquet` for SkillPu
 
 | Trade Category | Total Observations | Mean Demand Index | Mean PLFS Supply Proxy | Mean Net Gap |
 |---|---|---|---|---|
-| **IT-ITES** | 940 | 163.1 | 175.2 | -12.1 |
-| **ITI/PMKVY** | 2,252 | 112.9 | 124.2 | -11.3 |
-| **PMKVY** | 384 | 106.6 | 123.9 | -17.3 |
-| **PMKVY/Healthcare** | 172 | 59.5 | 64.8 | -5.3 |
-| **PMKVY/IT-ITES** | 564 | 101.2 | 124.3 | -23.0 |
-| **PMKVY/Retail** | 192 | 95.4 | 104.6 | -9.2 |
+| **IT-ITES** | 928 | 4.6 | 2.5 | +2.1 |
+| **ITI/PMKVY** | 2,240 | 10.8 | 10.8 | +0.0 |
+| **PMKVY** | 378 | 10.5 | 10.9 | -0.4 |
+| **PMKVY/Healthcare** | 166 | 4.2 | 2.1 | +2.1 |
+| **PMKVY/IT-ITES** | 550 | 4.5 | 2.3 | +2.2 |
+| **PMKVY/Retail** | 192 | 8.9 | 8.9 | +0.0 |
+
+---
+
+## 4b. Data Provenance (Real vs. Synthetic)
+
+| Field | Data Source | Status |
+|---|---|---|
+| `plfs_supply_proxy` | PLFS Annual Report 2023-24, Table 27 (rural+urban, Male/Female mean), MoSPI/NSSO | **VERIFIED REAL** - see `docs/data_integrity_audit.md` for exact citation and figures |
+| `demand_count` | Synthetic demonstration generator (seasonal/trend formula + occupation-matched postings boost) | **SYNTHETIC DEMO - not verified** |
+
+No row in this panel is dropped or fabricated to fill a gap: any state/occupation
+without a verified PLFS Table 27 figure is excluded entirely from the panel
+(see pipeline log for exclusions), per project rule against inventing values.
 
 ---
 
@@ -68,5 +84,5 @@ Per Rule 7 of `PROJECT_RULES.md` and `docs/product_blueprint.md`:
 - Minimum history threshold: **12 consecutive monthly observations**.
 - Series with < 12 observations are marked `"insufficient history to forecast"` and excluded from ML candidate model fitting.
 - In this panel:
-  - **188 segments (97.9%)** pass the gate and proceed to forecasting models.
-  - **4 segments (2.1%)** are gated out as insufficient, demonstrating that the system refuses to force predictions where historical evidence is statistically insufficient.
+  - **187 segments (97.4%)** pass the gate and proceed to forecasting models.
+  - **5 segments (2.6%)** are gated out as insufficient, demonstrating that the system refuses to force predictions where historical evidence is statistically insufficient.

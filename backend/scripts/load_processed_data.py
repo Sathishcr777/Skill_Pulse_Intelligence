@@ -325,6 +325,11 @@ def load_data(db_url: str):
                 demand_index=float(row["demand_count"]),
                 net_gap=float(row["net_gap"]),
                 data_vintage=str(row["data_vintage"]),
+                supply_data_source=str(row.get("supply_data_source", "unavailable")),
+                supply_source_citation=(
+                    str(row["supply_source_citation"]) if pd.notnull(row.get("supply_source_citation")) else None
+                ),
+                demand_data_source=str(row.get("demand_data_source", "synthetic_demo")),
             )
             series_to_add.append(es)
             existing_series.add((reg.id, occ.id, ym))
@@ -335,7 +340,18 @@ def load_data(db_url: str):
             stats["series_inserted"] += len(series_to_add)
 
         # 5. Ingest Postings Skill Signal
-        logger.info("Step 5: Loading job postings skill demand signals...")
+        #
+        # Previously this generated mention_count/frequency_pct with
+        # np.random, presented as if it were a real job-postings signal.
+        # Replaced with a real computation over the actual 10-record Naukri
+        # sample (see docs/data_sources_findings.md: only 10 real postings
+        # exist, 2 crosswalk-matched to a known occupation). Keyword
+        # presence is checked directly in each real posting's title+
+        # description text. No row is inserted for an occupation/skill
+        # combination with zero real evidence - the feature is simply
+        # absent (unavailable) there, never backfilled with an invented
+        # number. See docs/data_integrity_audit.md.
+        logger.info("Step 5: Loading job postings skill demand signals (real postings only)...")
         existing_signals = {
             (sig.occupation_id, sig.region_id, sig.skill_id, sig.year_month)
             for sig in session.query(
@@ -346,34 +362,78 @@ def load_data(db_url: str):
             ).all()
         }
 
-        # Generate aggregated skill signals based on skill map and demand activity
-        signals_to_add: List[PostingsSkillSignal] = []
-        for code_2dec, skills_list in TRADE_SKILLS_MAP.items():
-            occ = occ_by_code.get(code_2dec)
+        from ml.clean.clean_postings import clean_job_postings
+        from ml.features.occupation_crosswalk import OccupationCrosswalk
+
+        STOPWORDS = {"and", "the", "for", "with", "via", "api", "development"}
+
+        def skill_keywords(skill_name: str) -> List[str]:
+            """Derives simple search keywords from a real, already-cited
+            skill name (TRADE_SKILLS_MAP) - not invented vocabulary."""
+            cleaned = skill_name.replace("/", " ").replace("(", " ").replace(")", " ")
+            words = [w.lower() for w in cleaned.split() if len(w) >= 3]
+            return [w for w in words if w not in STOPWORDS]
+
+        raw_postings_df = clean_job_postings()
+        crosswalk = OccupationCrosswalk()
+
+        # Match each real posting to an occupation and region.
+        matched_real_postings = []
+        for _, prow in raw_postings_df.iterrows():
+            match_res = crosswalk.match_title(prow["job_title"])
+            if match_res["nco_code"] is None:
+                continue
+            occ = occ_by_code.get(round(float(match_res["nco_code"]), 2))
             if not occ:
                 continue
+            reg = existing_regions.get(str(prow["state_code"]).strip()) if pd.notnull(prow["state_code"]) else None
+            matched_real_postings.append({
+                "occ": occ,
+                "region": reg,
+                "year_month": prow["year_month"],
+                "text": f"{prow['job_title']} {prow['job_description']}".lower(),
+            })
 
-            for skill_id, _, _ in skills_list:
+        logger.info(
+            f"Step 5: {len(matched_real_postings)} of {len(raw_postings_df)} real postings "
+            f"crosswalk-matched to a known occupation; computing real keyword signal from these only."
+        )
+
+        # Count how many real matched postings exist per occupation, for a
+        # real (not invented) frequency_pct denominator.
+        postings_per_occ: Dict[int, int] = {}
+        for mp in matched_real_postings:
+            postings_per_occ[mp["occ"].id] = postings_per_occ.get(mp["occ"].id, 0) + 1
+
+        signal_counts: Dict[tuple, int] = {}
+        for mp in matched_real_postings:
+            code_2dec = round(float(mp["occ"].nco_code), 2)
+            for skill_id, skill_name, _ in TRADE_SKILLS_MAP.get(code_2dec, []):
                 sk = existing_skills.get(skill_id)
                 if not sk:
                     continue
+                if any(kw in mp["text"] for kw in skill_keywords(skill_name)):
+                    key = (mp["occ"].id, mp["region"].id if mp["region"] else None, sk.id, mp["year_month"])
+                    signal_counts[key] = signal_counts.get(key, 0) + 1
 
-                for ym in ["2023-10", "2023-11", "2023-12"]:
-                    key = (occ.id, None, sk.id, ym)
-                    if key in existing_signals:
-                        continue
-
-                    sig = PostingsSkillSignal(
-                        occupation_id=occ.id,
-                        region_id=None,
-                        skill_id=sk.id,
-                        year_month=ym,
-                        mention_count=np.random.randint(45, 180),
-                        frequency_pct=round(float(np.random.uniform(42.0, 88.0)), 2),
-                        data_vintage="2023-12-31",
-                    )
-                    signals_to_add.append(sig)
-                    existing_signals.add(key)
+        signals_to_add: List[PostingsSkillSignal] = []
+        for (occ_id, region_id, skill_id_pk, ym), count in signal_counts.items():
+            key = (occ_id, region_id, skill_id_pk, ym)
+            if key in existing_signals:
+                continue
+            total_for_occ = postings_per_occ.get(occ_id, 1)
+            sig = PostingsSkillSignal(
+                occupation_id=occ_id,
+                region_id=region_id,
+                skill_id=skill_id_pk,
+                year_month=ym,
+                mention_count=count,
+                frequency_pct=round(count / total_for_occ * 100, 2),
+                data_vintage="2023-12-31",
+                data_source="verified_real",
+            )
+            signals_to_add.append(sig)
+            existing_signals.add(key)
 
         if signals_to_add:
             session.bulk_save_objects(signals_to_add)

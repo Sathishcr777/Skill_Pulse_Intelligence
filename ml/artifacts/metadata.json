@@ -1,7 +1,7 @@
 {
   "project": "SkillPulse Intelligence (SIH26246)",
   "pipeline_version": "1.0.0",
-  "execution_timestamp": "2026-10-19T17:42:50.829433",
+  "execution_timestamp": "2026-10-19T18:55:36.851528",
   "data_version": "panel_v1_2022_2023",
   "training_window": {
     "start_date": "2022-01-01",
@@ -14,81 +14,90 @@
     "baseline_model": "Seasonal-Naive (lag=12, ma=3)",
     "candidate_model": "Holt-Winters Exponential Smoothing",
     "baseline_metrics": {
-      "mae": 16.047,
-      "rmse": 20.233,
-      "mape": 14.03,
-      "count": 2232
+      "mae": 6.387,
+      "rmse": 8.488,
+      "mape": 202.55,
+      "count": 2190
     },
     "candidate_metrics": {
-      "mae": 11.767,
-      "rmse": 14.735,
-      "mape": 10.7,
-      "count": 2232
+      "mae": 5.618,
+      "rmse": 7.235,
+      "mape": 179.64,
+      "count": 2190
     },
-    "total_evaluated_segments": 188,
-    "candidate_losses_to_baseline_count": 64,
+    "total_evaluated_segments": 187,
+    "candidate_losses_to_baseline_count": 55,
     "category_metrics": {
       "IT-ITES": {
         "evaluated_segments": 39,
-        "baseline_mean_mae": 20.244,
-        "candidate_mean_mae": 12.727,
-        "candidate_wins_count": 29,
-        "candidate_win_rate_pct": 74.4
+        "baseline_mean_mae": 4.821,
+        "candidate_mean_mae": 4.151,
+        "candidate_wins_count": 28,
+        "candidate_win_rate_pct": 71.8
       },
       "ITI/PMKVY": {
         "evaluated_segments": 94,
-        "baseline_mean_mae": 13.693,
-        "candidate_mean_mae": 11.353,
-        "candidate_wins_count": 57,
-        "candidate_win_rate_pct": 60.6
+        "baseline_mean_mae": 7.177,
+        "candidate_mean_mae": 6.284,
+        "candidate_wins_count": 66,
+        "candidate_win_rate_pct": 70.2
       },
       "PMKVY": {
         "evaluated_segments": 16,
-        "baseline_mean_mae": 26.765,
-        "candidate_mean_mae": 11.582,
-        "candidate_wins_count": 16,
-        "candidate_win_rate_pct": 100.0
+        "baseline_mean_mae": 8.545,
+        "candidate_mean_mae": 7.576,
+        "candidate_wins_count": 13,
+        "candidate_win_rate_pct": 81.2
       },
       "PMKVY/Healthcare": {
         "evaluated_segments": 7,
-        "baseline_mean_mae": 10.005,
-        "candidate_mean_mae": 9.968,
-        "candidate_wins_count": 2,
-        "candidate_win_rate_pct": 28.6
+        "baseline_mean_mae": 3.708,
+        "candidate_mean_mae": 3.908,
+        "candidate_wins_count": 3,
+        "candidate_win_rate_pct": 42.9
       },
       "PMKVY/IT-ITES": {
-        "evaluated_segments": 24,
-        "baseline_mean_mae": 14.422,
-        "candidate_mean_mae": 12.777,
-        "candidate_wins_count": 17,
-        "candidate_win_rate_pct": 70.8
+        "evaluated_segments": 23,
+        "baseline_mean_mae": 4.827,
+        "candidate_mean_mae": 4.334,
+        "candidate_wins_count": 16,
+        "candidate_win_rate_pct": 69.6
       },
       "PMKVY/Retail": {
         "evaluated_segments": 8,
-        "baseline_mean_mae": 10.744,
-        "candidate_mean_mae": 11.636,
-        "candidate_wins_count": 3,
-        "candidate_win_rate_pct": 37.5
+        "baseline_mean_mae": 7.075,
+        "candidate_mean_mae": 6.07,
+        "candidate_wins_count": 6,
+        "candidate_win_rate_pct": 75.0
       }
     }
   },
   "sufficiency_gating": {
     "minimum_history_threshold_months": 12,
     "total_segments": 192,
-    "sufficient_segments_count": 188,
-    "excluded_segments_count": 4,
+    "sufficient_segments_count": 187,
+    "excluded_segments_count": 5,
     "excluded_segments": [
       {
-        "state_code": "DL",
-        "nco_code": 7112.01,
-        "occupation_title": "Mason (Bricklayer)",
-        "trade_category": "ITI/PMKVY",
+        "state_code": "GJ",
+        "nco_code": 2511.01,
+        "occupation_title": "Systems Analyst",
+        "trade_category": "IT-ITES",
         "observations": 4,
         "sufficient": false,
         "exclusion_reason": "insufficient history to forecast (4 obs < 12 required)"
       },
       {
         "state_code": "GJ",
+        "nco_code": 7212.01,
+        "occupation_title": "Welder Gas and Electric",
+        "trade_category": "ITI/PMKVY",
+        "observations": 4,
+        "sufficient": false,
+        "exclusion_reason": "insufficient history to forecast (4 obs < 12 required)"
+      },
+      {
+        "state_code": "KA",
         "nco_code": 5321.01,
         "occupation_title": "General Duty Assistant / Healthcare Attendant",
         "trade_category": "PMKVY/Healthcare",
@@ -97,19 +106,19 @@
         "exclusion_reason": "insufficient history to forecast (4 obs < 12 required)"
       },
       {
-        "state_code": "HR",
-        "nco_code": 7112.01,
-        "occupation_title": "Mason (Bricklayer)",
-        "trade_category": "ITI/PMKVY",
+        "state_code": "KA",
+        "nco_code": 7422.02,
+        "occupation_title": "Field Technician - Computing and Peripherals",
+        "trade_category": "PMKVY/IT-ITES",
         "observations": 4,
         "sufficient": false,
         "exclusion_reason": "insufficient history to forecast (4 obs < 12 required)"
       },
       {
         "state_code": "UP",
-        "nco_code": 2512.01,
-        "occupation_title": "Software Developer",
-        "trade_category": "IT-ITES",
+        "nco_code": 7412.01,
+        "occupation_title": "Wireman",
+        "trade_category": "ITI/PMKVY",
         "observations": 4,
         "sufficient": false,
         "exclusion_reason": "insufficient history to forecast (4 obs < 12 required)"
@@ -118,9 +127,9 @@
   },
   "evidence_grading": {
     "grade_distribution": {
-      "B": 112,
-      "A": 76,
-      "Insufficient": 4
+      "B": 138,
+      "A": 49,
+      "Insufficient": 5
     },
     "total_graded_segments": 192,
     "scoring_formula": "S = S_volume (40) + S_agreement (35) + S_recency (25)",

@@ -4,6 +4,7 @@ Tests all route behaviors, database queries, Pydantic validation (404 for invali
 422 for invalid date ranges), sufficiency gating, and model evaluation metrics.
 """
 
+import json
 import os
 import shutil
 import tempfile
@@ -135,6 +136,14 @@ def test_get_forecast_sufficient_segment(client):
     assert data["historical_series"][0]["year_month"] == "2022-01"
     assert data["historical_series"][-1]["year_month"] == "2023-12"
 
+    # Data provenance must be explicit per point: supply is verified real
+    # PLFS Table 27 data, demand remains a disclosed synthetic demo signal.
+    for point in data["historical_series"]:
+        assert point["supply_data_source"] == "verified_real"
+        assert point["supply_source_citation"] is not None
+        assert "Table 27" in point["supply_source_citation"]
+        assert point["demand_data_source"] == "synthetic_demo"
+
     # Forecast series: 6 horizon steps (2024-01 to 2024-06)
     assert len(data["forecasts"]) == 6
     for fc in data["forecasts"]:
@@ -144,13 +153,30 @@ def test_get_forecast_sufficient_segment(client):
         assert fc["lower_bound"] <= fc["predicted_demand"] <= fc["upper_bound"]
 
 
+def _find_insufficient_segment():
+    """Discovers a real insufficient-history segment from the panel rather
+    than hardcoding one. Segment length assignment is now a neutral random
+    draw (see docs/data_integrity_audit.md section on de-biasing demand
+    classification), not tied to a specific occupation/state by name, so
+    which segment is insufficient can change between panel rebuilds."""
+    import pandas as pd
+
+    panel_path = os.path.abspath("data/processed/panel.parquet")
+    df = pd.read_parquet(panel_path)
+    counts = df.groupby(["state_code", "nco_code"])["year_month"].count()
+    short = counts[counts < 12]
+    assert len(short) > 0, "Expected at least one insufficient-history segment in the panel"
+    state_code, nco_code = short.index[0]
+    return state_code, nco_code
+
+
 def test_get_forecast_insufficient_segment_hard_gated(client):
-    # Mason (7112.01) in Delhi (DL) - 4 obs < 12 threshold
-    response = client.get("/forecast/7112.01/DL")
+    state_code, nco_code = _find_insufficient_segment()
+    response = client.get(f"/forecast/{nco_code}/{state_code}")
     assert response.status_code == 200
     data = response.json()
 
-    assert data["region"]["state_code"] == "DL"
+    assert data["region"]["state_code"] == state_code
     assert data["is_sufficient"] is False
     assert "insufficient history to forecast" in data["gating_reason"]
     assert data["evidence_grade"]["grade"] == "Insufficient"
@@ -228,14 +254,19 @@ def test_get_market_overview(client):
     assert data["total_regions"] == 8
     assert data["total_occupations"] == 24
     assert data["total_segments"] == 192
-    assert data["sufficient_segments"] == 188
-    assert data["excluded_segments"] == 4
+    assert data["sufficient_segments"] == 187
+    assert data["excluded_segments"] == 5
     assert data["latest_data_vintage"] == "2023-12-31"
 
-    # Evidence grade distribution
-    assert data["grade_distribution"]["A"] == 76
-    assert data["grade_distribution"]["B"] == 112
-    assert data["grade_distribution"]["Insufficient"] == 4
+    # Evidence grade distribution (recomputed after (1) replacing the
+    # fabricated PLFS benchmark dict with verified real PLFS Table 27
+    # figures, and (2) de-biasing the demand-signal classification away from
+    # occupation-name-keyed rules to a neutral random draw - see
+    # docs/data_integrity_audit.md). Exact counts are not asserted beyond
+    # internal consistency since the neutral draw is expected to vary
+    # slightly between panel rebuilds.
+    assert sum(data["grade_distribution"].values()) == 192
+    assert data["grade_distribution"]["Insufficient"] == 5
 
     # Top deficit and surplus
     assert len(data["top_deficit_trades"]) > 0
@@ -263,18 +294,31 @@ def test_get_model_status(client):
     c_metrics = data["overall_candidate_metrics"]
     b_metrics = data["overall_baseline_metrics"]
 
-    # Assert real metrics from metadata.json
-    assert c_metrics["mae"] == 11.767
-    assert c_metrics["rmse"] == 14.735
-    assert c_metrics["mape"] == 10.7
-    assert b_metrics["mae"] == 16.047
-    assert b_metrics["rmse"] == 20.233
-    assert b_metrics["mape"] == 14.03
+    # Metrics now come from a panel whose demand-signal segment
+    # classification is a neutral random draw (see
+    # docs/data_integrity_audit.md), so exact MAE/RMSE/MAPE will shift
+    # slightly between rebuilds. Assert the API reports EXACTLY what the
+    # training pipeline actually produced (metadata.json), rather than a
+    # hardcoded magic number - this is a provenance-consistency check, not
+    # a fixed-value regression check. MAPE is expected to be large (>100%)
+    # because real PLFS-anchored demand values are small in scale, making
+    # percentage error an unstable metric here - MAE/RMSE are the more
+    # honest metrics to read for this dataset.
+    with open("ml/artifacts/metadata.json", "r", encoding="utf-8") as f:
+        meta = json.load(f)
+    eval_block = meta["overall_evaluation"]
 
-    assert data["total_evaluated_segments"] == 188
-    assert data["candidate_losses_to_baseline_count"] == 64
-    assert data["excluded_segments_count"] == 4
+    assert c_metrics["mae"] == eval_block["candidate_metrics"]["mae"]
+    assert c_metrics["rmse"] == eval_block["candidate_metrics"]["rmse"]
+    assert c_metrics["mape"] == eval_block["candidate_metrics"]["mape"]
+    assert b_metrics["mae"] == eval_block["baseline_metrics"]["mae"]
+    assert b_metrics["rmse"] == eval_block["baseline_metrics"]["rmse"]
+    assert b_metrics["mape"] == eval_block["baseline_metrics"]["mape"]
+    assert c_metrics["mae"] < b_metrics["mae"], "Candidate should beat naive baseline on MAE"
 
-    assert data["grade_distribution"]["A"] == 76
-    assert data["grade_distribution"]["B"] == 112
-    assert data["grade_distribution"]["Insufficient"] == 4
+    assert data["total_evaluated_segments"] == eval_block["total_evaluated_segments"]
+    assert data["candidate_losses_to_baseline_count"] == eval_block["candidate_losses_to_baseline_count"]
+    assert data["excluded_segments_count"] == meta["sufficiency_gating"]["excluded_segments_count"]
+
+    assert sum(data["grade_distribution"].values()) == 192
+    assert data["grade_distribution"]["Insufficient"] == meta["sufficiency_gating"]["excluded_segments_count"]

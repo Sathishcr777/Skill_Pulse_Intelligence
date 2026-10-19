@@ -252,6 +252,9 @@ def get_forecast(
             supply_index=h.supply_index,
             net_gap=h.net_gap,
             data_vintage=h.data_vintage,
+            supply_data_source=h.supply_data_source,
+            supply_source_citation=h.supply_source_citation,
+            demand_data_source=h.demand_data_source,
         )
         for h in hist_records
     ]

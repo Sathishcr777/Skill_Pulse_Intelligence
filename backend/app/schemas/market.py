@@ -49,6 +49,9 @@ class HistoricalDataPoint(BaseModel):
     supply_index: float
     net_gap: float
     data_vintage: str
+    supply_data_source: str = "unavailable"  # 'verified_real' | 'unavailable'
+    supply_source_citation: Optional[str] = None
+    demand_data_source: str = "synthetic_demo"  # 'verified_real' | 'synthetic_demo'
 
 
 class ForecastDataPoint(BaseModel):

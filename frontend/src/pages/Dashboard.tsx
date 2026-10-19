@@ -269,3 +269,12 @@ export const Dashboard: React.FC = () => {
     </div>
   )
 }
+<div>GET http://localhost:8000/models/status &rarr; Walk-Forward Provenance Metrics</div>
+              </div >
+            </div >
+          </div >
+        )}
+      </div >
+    </div >
+  )
+}
