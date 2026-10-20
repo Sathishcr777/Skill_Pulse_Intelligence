@@ -119,6 +119,13 @@
   }
   body {
     @apply bg-background text-foreground antialiased min-h-screen selection:bg-primary/20 selection:text-primary transition-colors duration-200;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* Metrics, codes and timestamps use a monospace built for dense numeric
+     readability (vs. the default system mono) - legible at 1080p recording
+     scale per the mentor's blurry-text feedback. */
+  .font-mono {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 }

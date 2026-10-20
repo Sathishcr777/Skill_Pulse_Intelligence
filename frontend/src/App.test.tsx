@@ -67,7 +67,11 @@ describe('Dashboard', () => {
   it('renders the real product shell and loads live market data', async () => {
     renderApp()
 
-    expect(screen.getByText('SkillPulse Intelligence')).toBeInTheDocument()
+    // The sidebar brand mark renders "SkillPulse" / "Intelligence" as two
+    // separate lines (see Sidebar.tsx), so match them as separate nodes
+    // rather than one literal two-word string.
+    expect(screen.getByText('SkillPulse')).toBeInTheDocument()
+    expect(screen.getByText('Intelligence')).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText(/Segments Forecastable/i)).toBeInTheDocument()
