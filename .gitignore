@@ -45,12 +45,20 @@ dist-ssr/
 
 # Data & ML artifacts
 data/raw/
-data/processed/
+data/processed/*
 data/interim/
 ml/artifacts/*.joblib
 ml/artifacts/*.pkl
 ml/artifacts/*.onnx
 ml/artifacts/*.model
+
+# Exceptions: the processed panel + fitted forecaster are what load_processed_data.py
+# seeds the database from. Without them a fresh clone (e.g. a deploy target) has no
+# data to seed and every segment falls back to "insufficient" instead of forecasting.
+!data/processed/panel.parquet
+!data/processed/backtest_points.parquet
+!data/processed/backtest_segment_summary.parquet
+!ml/artifacts/best_forecaster.joblib
 
 # Database & local volumes
 *.sqlite3
