@@ -445,3 +445,30 @@ def test_get_skill_graph(client):
         assert 0.0 <= edge["weight"] <= 1.0
 
     assert "co-occurrence" in data["data_note"] or "sparse" in data["data_note"]
+
+
+# =========================================================================
+# 10. Occupation Availability - powers the occupation explorer's real
+#     "N observations" / "insufficient data" indicators per item
+# =========================================================================
+def test_get_occupations_availability(client):
+    response = client.get("/occupations/availability?region=MH")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data) == 24  # every occupation has a real evidence grade for this region
+    sufficient = [o for o in data if o["is_sufficient"]]
+    insufficient = [o for o in data if not o["is_sufficient"]]
+    assert len(sufficient) + len(insufficient) == 24
+
+    for item in sufficient:
+        assert item["observations_count"] >= 12
+        assert item["evidence_grade"] in ["A", "B", "C"]
+    for item in insufficient:
+        assert item["evidence_grade"] == "Insufficient"
+        assert item["gating_reason"] is not None
+
+
+def test_get_occupations_availability_unknown_region_returns_404(client):
+    response = client.get("/occupations/availability?region=NONEXISTENT")
+    assert response.status_code == 404

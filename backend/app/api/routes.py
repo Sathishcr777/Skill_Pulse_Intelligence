@@ -38,6 +38,7 @@ from backend.app.schemas.market import (
     HistoricalDataPoint,
     MarketOverviewResponse,
     ModelStatusResponse,
+    OccupationAvailability,
     OccupationResponse,
     RegionResponse,
     SkillGraphResponse,
@@ -175,6 +176,39 @@ def get_occupations(
             )
         )
     return results
+
+
+@router.get("/occupations/availability", response_model=List[OccupationAvailability], tags=["Taxonomy"])
+def get_occupations_availability(
+    region: str = Query(..., description="State code, e.g. 'MH'"),
+    db: Session = Depends(get_db),
+):
+    """Real per-occupation data sufficiency for one region, read directly
+    from the persisted EvidenceGrade table - lets the occupation explorer
+    show 'N real observations' or 'insufficient data' per item without
+    guessing or fabricating a value for occupations it hasn't checked."""
+    reg = resolve_region(region, db)
+
+    stmt = (
+        select(EvidenceGrade, Occupation)
+        .join(Occupation, EvidenceGrade.occupation_id == Occupation.id)
+        .where(EvidenceGrade.region_id == reg.id)
+        .order_by(Occupation.nco_code)
+    )
+    rows = db.execute(stmt).all()
+
+    return [
+        OccupationAvailability(
+            nco_code=occ.nco_code,
+            title=occ.title,
+            trade_category=occ.trade_category,
+            is_sufficient=eg.is_sufficient,
+            evidence_grade=eg.grade,
+            observations_count=eg.observations_count,
+            gating_reason=eg.gating_reason,
+        )
+        for eg, occ in rows
+    ]
 
 
 @router.get("/forecast/{occupation}/{region}", response_model=ForecastDetailResponse, tags=["Forecasting"])

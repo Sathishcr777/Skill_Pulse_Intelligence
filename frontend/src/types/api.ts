@@ -26,6 +26,16 @@ export interface Occupation {
   skills: SkillSummary[]
 }
 
+export interface OccupationAvailability {
+  nco_code: number
+  title: string
+  trade_category: string
+  is_sufficient: boolean
+  evidence_grade: string
+  observations_count: number
+  gating_reason: string | null
+}
+
 export interface HistoricalDataPoint {
   year_month: string
   date: string

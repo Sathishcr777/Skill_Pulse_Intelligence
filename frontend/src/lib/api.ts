@@ -6,6 +6,7 @@ import {
   ModelStatusResponse,
   BacktestDetailResponse,
   DataTrustManifestResponse,
+  OccupationAvailability,
   SkillGraphResponse,
 } from "@/types/api"
 
@@ -39,6 +40,8 @@ export const api = {
   regions: () => get<Region[]>("/regions"),
   occupations: (tradeCategory?: string) =>
     get<Occupation[]>(`/occupations${tradeCategory ? `?trade_category=${encodeURIComponent(tradeCategory)}` : ""}`),
+  occupationAvailability: (region: string) =>
+    get<OccupationAvailability[]>(`/occupations/availability?region=${encodeURIComponent(region)}`),
   forecast: (nco: number, region: string) =>
     get<ForecastDetailResponse>(`/forecast/${nco}/${region}`),
   marketOverview: (region?: string, tradeCategory?: string) => {

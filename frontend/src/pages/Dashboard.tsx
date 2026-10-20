@@ -5,7 +5,6 @@ import {
   History,
   ShieldCheck,
   RefreshCw,
-  Search,
   MapPin,
   AlertCircle,
   CheckCircle2,
@@ -26,6 +25,7 @@ import { BacktestChart } from "@/components/BacktestChart"
 import { WhatIfSimulator } from "@/components/WhatIfSimulator"
 import { SkillUniverse3D } from "@/components/SkillUniverse3D"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { OccupationExplorer } from "@/components/OccupationExplorer"
 import { SkillUniverse2D, isWebGLAvailable } from "@/components/SkillUniverse2D"
 import { api, ApiError } from "@/lib/api"
 import {
@@ -117,15 +117,6 @@ export const Dashboard: React.FC = () => {
       fetchSegmentDetail(selectedOccupationCode, selectedRegion)
     }
   }, [selectedOccupationCode, selectedRegion, fetchSegmentDetail])
-
-  const filteredOccupations = useMemo(() => {
-    return occupations.filter((occ) => {
-      const matchesCategory = selectedCategory === "ALL" || occ.trade_category === selectedCategory
-      const matchesSearch =
-        occ.title.toLowerCase().includes(searchQuery.toLowerCase()) || occ.nco_code.toString().includes(searchQuery)
-      return matchesCategory && matchesSearch
-    })
-  }, [occupations, selectedCategory, searchQuery])
 
   const tradeCategories = useMemo(
     () => ["ALL", ...Array.from(new Set(occupations.map((o) => o.trade_category)))],
@@ -261,47 +252,28 @@ export const Dashboard: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="pt-2 border-t border-border/60 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                {tradeCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap ${
-                      selectedCategory === cat ? "bg-surface-hover text-white" : "bg-surface-sunken/40 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-              <div className="relative min-w-[220px]">
-                <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search trades..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-surface-sunken/80 border border-border text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap max-h-24 overflow-y-auto pr-1">
-              {filteredOccupations.map((occ) => (
+            <div className="pt-2 border-t border-border/60 flex items-center gap-1.5 overflow-x-auto pb-1">
+              {tradeCategories.map((cat) => (
                 <button
-                  key={occ.id}
-                  onClick={() => setSelectedOccupationCode(occ.nco_code)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 ${
-                    Math.abs(selectedOccupationCode - occ.nco_code) < 0.001
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold"
-                      : "bg-surface-sunken/60 text-muted-foreground hover:text-foreground border border-border/80"
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap ${
+                    selectedCategory === cat ? "bg-surface-hover text-white" : "bg-surface-sunken/40 text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <span className="font-mono text-[10px] opacity-70">{occ.nco_code.toFixed(2)}</span>
-                  <span>{occ.title}</span>
+                  {cat}
                 </button>
               ))}
             </div>
+            <OccupationExplorer
+              occupations={occupations}
+              selectedRegion={selectedRegion}
+              selectedOccupationCode={selectedOccupationCode}
+              selectedCategory={selectedCategory}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onSelect={setSelectedOccupationCode}
+            />
           </div>
         )}
 

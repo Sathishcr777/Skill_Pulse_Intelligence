@@ -40,6 +40,20 @@ class OccupationResponse(BaseModel):
     skills: List[SkillSummary] = []
 
 
+class OccupationAvailability(BaseModel):
+    """Real, per-occupation data sufficiency for a given region - powers
+    the occupation explorer's 'N observations' / 'insufficient data'
+    indicators without the UI needing to probe every occupation one by one."""
+
+    nco_code: float
+    title: str
+    trade_category: str
+    is_sufficient: bool
+    evidence_grade: str
+    observations_count: int
+    gating_reason: Optional[str] = None
+
+
 class HistoricalDataPoint(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
