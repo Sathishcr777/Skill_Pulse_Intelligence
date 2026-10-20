@@ -37,7 +37,7 @@ export const TimeSeriesChart: React.FC<Props> = ({
 
   if (!historicalData || historicalData.length === 0) {
     return (
-      <div className="h-72 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-center text-slate-500 text-sm">
+      <div className="h-72 rounded-xl bg-surface/60 border border-border flex items-center justify-center text-muted-foreground text-sm">
         No time series observations loaded for this selection.
       </div>
     )
@@ -125,13 +125,13 @@ export const TimeSeriesChart: React.FC<Props> = ({
   const hoverItem = hoverIndex !== null ? points[hoverIndex] : null
 
   return (
-    <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 p-5 shadow-xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b border-slate-800/60 pb-3">
+    <div className="rounded-2xl bg-surface/60 border border-border/80 p-5 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b border-border/60 pb-3">
         <div>
-          <h3 className="text-sm font-bold text-slate-100">
+          <h3 className="text-sm font-bold text-foreground">
             {occupationTitle} &middot; {stateCode}
           </h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">
+          <p className="text-[11px] text-muted-foreground mt-0.5">
             Historical series + {forecastData.length}-month forecast with confidence band. Solid = actual, dashed = forecast.
           </p>
         </div>
@@ -139,7 +139,7 @@ export const TimeSeriesChart: React.FC<Props> = ({
           <button
             onClick={() => setShowSupply(!showSupply)}
             className={`px-2 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 ${
-              showSupply ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30" : "bg-slate-800/40 text-slate-500"
+              showSupply ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30" : "bg-surface-hover/40 text-muted-foreground"
             }`}
           >
             {showSupply ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
@@ -149,7 +149,7 @@ export const TimeSeriesChart: React.FC<Props> = ({
             <button
               onClick={() => setShowBounds(!showBounds)}
               className={`px-2 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 ${
-                showBounds ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" : "bg-slate-800/40 text-slate-500"
+                showBounds ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" : "bg-surface-hover/40 text-muted-foreground"
               }`}
             >
               {showBounds ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
@@ -161,7 +161,7 @@ export const TimeSeriesChart: React.FC<Props> = ({
 
       {!isSufficient && (
         <div className="mb-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div>
             <div className="font-semibold text-amber-300">Insufficient history — no forecast produced</div>
             <div className="text-amber-200/80 mt-0.5">
@@ -233,26 +233,26 @@ export const TimeSeriesChart: React.FC<Props> = ({
 
         {hoverItem && (
           <div
-            className="absolute top-2 pointer-events-none rounded-xl bg-slate-900/95 border border-slate-700 p-3 shadow-2xl text-xs space-y-1 z-20"
+            className="absolute top-2 pointer-events-none rounded-xl bg-surface/95 border border-border p-3 shadow-2xl text-xs space-y-1 z-20"
             style={{ left: `${Math.min(Math.max(10, (hoverIndex! / points.length) * 100 - 15), 65)}%` }}
           >
-            <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-1 font-mono font-semibold text-slate-200">
+            <div className="flex items-center justify-between gap-4 border-b border-border pb-1 font-mono font-semibold text-foreground">
               <span className="flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-slate-400" />
+                <Calendar className="w-3 h-3 text-muted-foreground" />
                 {hoverItem.label}
               </span>
-              <span className={hoverItem.isForecast ? "text-cyan-400" : "text-emerald-400"}>
+              <span className={hoverItem.isForecast ? "text-cyan-600 dark:text-cyan-400" : "text-emerald-600 dark:text-emerald-400"}>
                 {hoverItem.isForecast ? "Forecast" : "Historical"}
               </span>
             </div>
             {hoverItem.demand !== null && (
-              <div className="flex items-center justify-between gap-4 text-emerald-400">
+              <div className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
                 <span>Demand:</span>
                 <span className="font-bold">{hoverItem.demand.toFixed(1)}</span>
               </div>
             )}
             {hoverItem.forecast !== null && (
-              <div className="flex items-center justify-between gap-4 text-cyan-400">
+              <div className="flex items-center justify-between gap-4 text-cyan-600 dark:text-cyan-400">
                 <span>Forecast:</span>
                 <span className="font-bold">{hoverItem.forecast.toFixed(1)}</span>
               </div>
@@ -263,19 +263,19 @@ export const TimeSeriesChart: React.FC<Props> = ({
                 <span>[{hoverItem.lowerBound.toFixed(1)} - {hoverItem.upperBound.toFixed(1)}]</span>
               </div>
             )}
-            <div className="flex items-center justify-between gap-4 text-indigo-400">
+            <div className="flex items-center justify-between gap-4 text-indigo-600 dark:text-indigo-400">
               <span>Supply proxy:</span>
               <span className="font-bold">{hoverItem.supply?.toFixed(1)}</span>
             </div>
-            <div className="flex items-center justify-between gap-4 text-[10px] pt-1 border-t border-slate-800/80">
-              <span className="text-slate-500">Supply source:</span>
-              <span className={hoverItem.supplySource === "verified_real" ? "text-emerald-400 font-semibold" : "text-amber-400 font-semibold"}>
+            <div className="flex items-center justify-between gap-4 text-[10px] pt-1 border-t border-border/80">
+              <span className="text-muted-foreground">Supply source:</span>
+              <span className={hoverItem.supplySource === "verified_real" ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-amber-600 dark:text-amber-400 font-semibold"}>
                 {hoverItem.supplySource === "verified_real" ? "Verified (PLFS Table 27)" : "Unavailable"}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 text-[10px]">
-              <span className="text-slate-500">Demand source:</span>
-              <span className={hoverItem.demandSource === "verified_real" ? "text-emerald-400 font-semibold" : "text-amber-400 font-semibold"}>
+              <span className="text-muted-foreground">Demand source:</span>
+              <span className={hoverItem.demandSource === "verified_real" ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-amber-600 dark:text-amber-400 font-semibold"}>
                 {hoverItem.demandSource === "model_generated" ? "Model-generated forecast" : "Synthetic demo (not verified)"}
               </span>
             </div>

@@ -1,6 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { App } from './App'
+import { ThemeProvider } from './lib/theme'
+
+const renderApp = () => render(<ThemeProvider><App /></ThemeProvider>)
 
 const mockRegions = [{ id: 1, state_code: 'MH', state_name: 'Maharashtra', zone: 'West' }]
 const mockOccupations = [
@@ -62,7 +65,7 @@ describe('Dashboard', () => {
   })
 
   it('renders the real product shell and loads live market data', async () => {
-    render(<App />)
+    renderApp()
 
     expect(screen.getByText('SkillPulse Intelligence')).toBeInTheDocument()
 
@@ -75,7 +78,7 @@ describe('Dashboard', () => {
   it('handles backend connection failure with a visible retry, not a blank page', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as unknown as typeof fetch
 
-    render(<App />)
+    renderApp()
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to connect to SkillPulse API backend/i)).toBeInTheDocument()

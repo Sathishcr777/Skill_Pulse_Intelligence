@@ -23,10 +23,10 @@ export const BacktestChart: React.FC<Props> = ({
 
   if (!points || points.length === 0) {
     return (
-      <div className="h-64 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col items-center justify-center text-slate-500 text-sm gap-1">
+      <div className="h-64 rounded-xl bg-surface/60 border border-border flex flex-col items-center justify-center text-muted-foreground text-sm gap-1">
         <Info className="w-5 h-5" />
         <span>No backtest replay available — this segment was gated as insufficient-history.</span>
-        <span className="text-[11px] text-slate-600">
+        <span className="text-[11px] text-muted-foreground">
           Per project rule, the system does not force a backtest where it would not force a forecast.
         </span>
       </div>
@@ -57,19 +57,19 @@ export const BacktestChart: React.FC<Props> = ({
   const candidateWins = candidateMeanAbsError !== null && baselineMeanAbsError !== null && candidateMeanAbsError < baselineMeanAbsError
 
   return (
-    <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 p-5 shadow-xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b border-slate-800/60 pb-3">
+    <div className="rounded-2xl bg-surface/60 border border-border/80 p-5 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b border-border/60 pb-3">
         <div>
-          <h3 className="text-sm font-bold text-slate-100">
+          <h3 className="text-sm font-bold text-foreground">
             Backtest replay: {occupationTitle} &middot; {stateCode}
           </h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">
+          <p className="text-[11px] text-muted-foreground mt-0.5">
             At each step, the model only ever saw data up to that point — a genuine out-of-sample walk-forward
             replay, not a fit-the-whole-series chart.
           </p>
         </div>
         <div className="flex items-center gap-2 text-[11px]">
-          <span className="px-2 py-1 rounded-md bg-slate-800/60 text-slate-300">Grade {evidenceGrade}</span>
+          <span className="px-2 py-1 rounded-md bg-surface-hover/60 text-foreground-secondary">Grade {evidenceGrade}</span>
           {candidateMeanAbsError !== null && (
             <span className={`px-2 py-1 rounded-md font-semibold ${candidateWins ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"}`}>
               Candidate MAE {candidateMeanAbsError.toFixed(2)} {candidateWins ? "< " : "> "}
@@ -118,27 +118,27 @@ export const BacktestChart: React.FC<Props> = ({
 
         {hoverItem && (
           <div
-            className="absolute top-2 pointer-events-none rounded-xl bg-slate-900/95 border border-slate-700 p-3 shadow-2xl text-xs space-y-1 z-20"
+            className="absolute top-2 pointer-events-none rounded-xl bg-surface/95 border border-border p-3 shadow-2xl text-xs space-y-1 z-20"
             style={{ left: `${Math.min(Math.max(10, (hoverIndex! / points.length) * 100 - 15), 65)}%` }}
           >
-            <div className="flex items-center gap-1 border-b border-slate-800 pb-1 font-mono font-semibold text-slate-200">
-              <Calendar className="w-3 h-3 text-slate-400" />
+            <div className="flex items-center gap-1 border-b border-border pb-1 font-mono font-semibold text-foreground">
+              <Calendar className="w-3 h-3 text-muted-foreground" />
               {hoverItem.year_month}
             </div>
-            <div className="flex items-center justify-between gap-4 text-emerald-400">
+            <div className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
               <span>Actual:</span><span className="font-bold">{hoverItem.actual.toFixed(1)}</span>
             </div>
-            <div className="flex items-center justify-between gap-4 text-cyan-400">
+            <div className="flex items-center justify-between gap-4 text-cyan-600 dark:text-cyan-400">
               <span>Candidate predicted:</span><span className="font-bold">{hoverItem.candidate_prediction.toFixed(1)} (err {hoverItem.candidate_abs_error.toFixed(1)})</span>
             </div>
-            <div className="flex items-center justify-between gap-4 text-amber-400">
+            <div className="flex items-center justify-between gap-4 text-amber-600 dark:text-amber-400">
               <span>Baseline predicted:</span><span className="font-bold">{hoverItem.baseline_prediction.toFixed(1)} (err {hoverItem.baseline_abs_error.toFixed(1)})</span>
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-400">
+      <div className="flex items-center gap-4 mt-3 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-emerald-500 inline-block" /> Actual</span>
         <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-cyan-500 inline-block" /> Candidate (Holt-Winters)</span>
         <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-amber-500 inline-block" /> Baseline (Seasonal-Naive)</span>

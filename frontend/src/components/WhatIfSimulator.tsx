@@ -50,12 +50,12 @@ export const WhatIfSimulator: React.FC<Props> = ({
   const gapImproving = result.simulatedGap < result.baselineGap
 
   return (
-    <Card className="bg-slate-900/60 border-slate-800/80">
+    <Card className="bg-surface/60 border-border/80">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-sm flex items-center gap-2">
-              <Calculator className="w-4 h-4 text-indigo-400" />
+              <Calculator className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               What-If Scenario Simulator
             </CardTitle>
             <CardDescription className="text-[11px]">
@@ -68,8 +68,8 @@ export const WhatIfSimulator: React.FC<Props> = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-4 text-xs">
-        <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-start gap-2 text-[11px] text-slate-400">
-          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-indigo-400" />
+        <div className="p-2.5 rounded-lg bg-surface-sunken/60 border border-border/80 flex items-start gap-2 text-[11px] text-muted-foreground">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-400" />
           <span>
             This models percentage growth-rate assumptions applied to the real baseline demand and supply figures.
             It does not convert a specific number of training seats, since the real PLFS supply figure here is an
@@ -111,24 +111,24 @@ export const WhatIfSimulator: React.FC<Props> = ({
           />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-slate-950/90 border border-indigo-900/30">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-surface-sunken/90 border border-indigo-900/30">
           <ResultCell label="Baseline demand" value={baselineDemand.toFixed(1)} />
           <ResultCell label="Baseline supply" value={baselineSupply.toFixed(1)} />
           <ResultCell label="Simulated demand" value={result.simulatedDemand.toFixed(1)} tone="emerald" />
           <ResultCell label="Simulated supply" value={result.simulatedSupply.toFixed(1)} tone="indigo" />
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/80 flex items-center justify-between">
+        <div className="p-3 rounded-xl bg-surface-sunken/90 border border-border/80 flex items-center justify-between">
           <div>
-            <div className="text-[11px] text-slate-400">Net gap: baseline &rarr; simulated</div>
-            <div className="font-mono text-base font-bold text-slate-100">
+            <div className="text-[11px] text-muted-foreground">Net gap: baseline &rarr; simulated</div>
+            <div className="font-mono text-base font-bold text-foreground">
               {result.baselineGap.toFixed(1)} &rarr; {result.simulatedGap.toFixed(1)}
             </div>
           </div>
-          <div className={`flex items-center gap-1.5 text-sm font-bold ${gapImproving ? "text-emerald-400" : "text-rose-400"}`}>
+          <div className={`flex items-center gap-1.5 text-sm font-bold ${gapImproving ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
             {gapImproving ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
             {result.gapChangePct === null ? (
-              <span className="text-slate-500 text-xs font-normal">N/A — baseline gap ~0</span>
+              <span className="text-muted-foreground text-xs font-normal">N/A — baseline gap ~0</span>
             ) : (
               <>
                 {result.gapChangePct >= 0 ? "+" : ""}
@@ -138,8 +138,8 @@ export const WhatIfSimulator: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="text-[10px] text-slate-500 leading-relaxed">
-          <strong className="text-slate-400">Assumptions &amp; limitations:</strong> linear growth applied uniformly
+        <div className="text-[10px] text-muted-foreground leading-relaxed">
+          <strong className="text-muted-foreground">Assumptions &amp; limitations:</strong> linear growth applied uniformly
           over the horizon; does not account for seasonality, policy lag, or capacity constraints; both growth rates
           are user-chosen hypotheticals, not model predictions. This panel never writes to or affects the real
           forecast, backtest, or evidence-grade calculations elsewhere in the app.
@@ -159,11 +159,11 @@ const SliderInput: React.FC<{
   unit: string
   accent: "indigo" | "emerald" | "cyan"
 }> = ({ label, value, onChange, min, max, step, unit, accent }) => {
-  const accentClass = { indigo: "accent-indigo-500 text-indigo-400", emerald: "accent-emerald-500 text-emerald-400", cyan: "accent-cyan-500 text-cyan-400" }[accent]
+  const accentClass = { indigo: "accent-indigo-500 text-indigo-600 dark:text-indigo-400", emerald: "accent-emerald-500 text-emerald-600 dark:text-emerald-400", cyan: "accent-cyan-500 text-cyan-600 dark:text-cyan-400" }[accent]
   return (
-    <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
+    <div className="p-3 rounded-xl bg-surface-sunken/60 border border-border/80 space-y-1.5">
       <div className="flex items-center justify-between text-[11px]">
-        <span className="text-slate-300 font-medium">{label}</span>
+        <span className="text-foreground-secondary font-medium">{label}</span>
         <span className={`font-mono font-bold ${accentClass.split(" ")[1]}`}>
           {value >= 0 && unit.includes("%") ? "+" : ""}
           {value}
@@ -177,9 +177,9 @@ const SliderInput: React.FC<{
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className={`w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer ${accentClass.split(" ")[0]}`}
+        className={`w-full h-1.5 bg-surface-hover rounded-lg cursor-pointer ${accentClass.split(" ")[0]}`}
       />
-      <div className="flex justify-between text-[9px] text-slate-500">
+      <div className="flex justify-between text-[9px] text-muted-foreground">
         <span>{min}{unit}</span>
         <span>{max}{unit}</span>
       </div>
@@ -189,8 +189,8 @@ const SliderInput: React.FC<{
 
 const ResultCell: React.FC<{ label: string; value: string; tone?: "indigo" | "emerald" }> = ({ label, value, tone }) => (
   <div>
-    <div className="text-[10px] text-slate-400">{label}</div>
-    <div className={`font-mono font-bold text-sm ${tone === "emerald" ? "text-emerald-400" : tone === "indigo" ? "text-indigo-400" : "text-slate-200"}`}>
+    <div className="text-[10px] text-muted-foreground">{label}</div>
+    <div className={`font-mono font-bold text-sm ${tone === "emerald" ? "text-emerald-600 dark:text-emerald-400" : tone === "indigo" ? "text-indigo-600 dark:text-indigo-400" : "text-foreground"}`}>
       {value}
     </div>
   </div>

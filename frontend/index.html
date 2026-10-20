@@ -1,13 +1,30 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkillPulse Intelligence | AI Labour Market & Skill Forecasting</title>
     <meta name="description" content="AI-Enabled Labour Market Intelligence and Skill Demand-Supply Forecasting Engine" />
+    <script>
+      // Runs before React mounts, before first paint, to prevent a flash of
+      // the wrong theme: saved preference > OS preference > dark default
+      // (this app's original identity).
+      (function () {
+        try {
+          var saved = localStorage.getItem("skillpulse-theme");
+          var theme = saved;
+          if (theme !== "light" && theme !== "dark") {
+            theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          }
+          document.documentElement.classList.toggle("dark", theme === "dark");
+        } catch (e) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
   </head>
-  <body class="bg-slate-950 text-slate-100 min-h-screen">
+  <body class="bg-background text-foreground min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

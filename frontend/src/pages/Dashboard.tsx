@@ -25,6 +25,7 @@ import { TimeSeriesChart } from "@/components/TimeSeriesChart"
 import { BacktestChart } from "@/components/BacktestChart"
 import { WhatIfSimulator } from "@/components/WhatIfSimulator"
 import { SkillUniverse3D } from "@/components/SkillUniverse3D"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import { SkillUniverse2D, isWebGLAvailable } from "@/components/SkillUniverse2D"
 import { api, ApiError } from "@/lib/api"
 import {
@@ -146,33 +147,36 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/80 pb-6">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">SIH26246</span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">SIH26246</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 Evidence-Graded Labour Market Intelligence
               </span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-white">SkillPulse Intelligence</h1>
-            <p className="text-slate-400 text-xs sm:text-sm max-w-3xl">
+            <h1 className="text-3xl font-black tracking-tight text-foreground">SkillPulse Intelligence</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm max-w-3xl">
               Supply proxy: verified PLFS Annual Report 2023-24 (Table 27) state-level industry shares — periodically
               refreshed, never real-time. Demand signal is a synthetic demonstration series; see the Data Trust Centre
               tab for the full, honest breakdown.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchInitialData} disabled={loadingInitial} className="border-slate-700 bg-slate-900/80 hover:bg-slate-800 self-start lg:self-auto">
-            <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loadingInitial ? "animate-spin text-indigo-400" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-3 self-start lg:self-auto">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={fetchInitialData} disabled={loadingInitial} className="border-border bg-surface/80 hover:bg-surface-hover">
+              <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loadingInitial ? "animate-spin text-indigo-600 dark:text-indigo-400" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </header>
 
         {error && (
           <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-sm flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+              <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
               <span>{error}</span>
             </div>
             <Button size="sm" variant="outline" onClick={fetchInitialData} className="border-rose-500/40 text-rose-200">Retry</Button>
@@ -181,41 +185,41 @@ export const Dashboard: React.FC = () => {
 
         {marketOverview && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Card className="bg-slate-900/60 border-slate-800/80">
+            <Card className="bg-surface/60 border-border/80">
               <CardContent className="p-4">
-                <div className="text-[11px] text-slate-400 uppercase tracking-wider">Segments Forecastable</div>
-                <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
+                <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Segments Forecastable</div>
+                <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1">
                   {marketOverview.sufficient_segments}
-                  <span className="text-xs text-rose-400 font-normal ml-1.5">({marketOverview.excluded_segments} gated)</span>
+                  <span className="text-xs text-rose-600 dark:text-rose-400 font-normal ml-1.5">({marketOverview.excluded_segments} gated)</span>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-slate-900/60 border-slate-800/80">
+            <Card className="bg-surface/60 border-border/80">
               <CardContent className="p-4">
-                <div className="text-[11px] text-slate-400 uppercase tracking-wider">Evidence Grade Split</div>
-                <div className="text-lg font-black text-cyan-400 font-mono mt-1">
+                <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Evidence Grade Split</div>
+                <div className="text-lg font-black text-cyan-600 dark:text-cyan-400 font-mono mt-1">
                   {marketOverview.grade_distribution.A ?? 0} A / {marketOverview.grade_distribution.B ?? 0} B / {marketOverview.grade_distribution.C ?? 0} C
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-slate-900/60 border-slate-800/80">
+            <Card className="bg-surface/60 border-border/80">
               <CardContent className="p-4">
-                <div className="text-[11px] text-slate-400 uppercase tracking-wider">Candidate vs Baseline (MAE)</div>
-                <div className="text-lg font-black text-slate-100 font-mono mt-1">
+                <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Candidate vs Baseline (MAE)</div>
+                <div className="text-lg font-black text-foreground font-mono mt-1">
                   {modelStatus ? `${modelStatus.overall_candidate_metrics.mae.toFixed(2)} vs ${modelStatus.overall_baseline_metrics.mae.toFixed(2)}` : "—"}
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-slate-900/60 border-slate-800/80">
+            <Card className="bg-surface/60 border-border/80">
               <CardContent className="p-4">
-                <div className="text-[11px] text-slate-400 uppercase tracking-wider">Data Vintage</div>
-                <div className="text-lg font-black text-slate-100 font-mono mt-1">{marketOverview.latest_data_vintage}</div>
+                <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Data Vintage</div>
+                <div className="text-lg font-black text-foreground font-mono mt-1">{marketOverview.latest_data_vintage}</div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        <div className="flex items-center gap-2 border-b border-slate-800/80 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 border-b border-border/80 overflow-x-auto pb-1">
           {([
             ["forecast", "Forecast", TrendingUp],
             ["radar", "Opportunity Radar", Target],
@@ -228,7 +232,7 @@ export const Dashboard: React.FC = () => {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition-all duration-150 ${
-                activeTab === tab ? "bg-indigo-600 text-white shadow-lg shadow-indigo-950/40" : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+                activeTab === tab ? "bg-indigo-600 text-white shadow-lg shadow-indigo-950/40" : "text-muted-foreground hover:text-foreground hover:bg-surface/60"
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -238,10 +242,10 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {(activeTab === "forecast" || activeTab === "backtest" || activeTab === "whatif") && (
-          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-3">
+          <div className="p-4 rounded-2xl bg-surface/60 border border-border/80 space-y-3">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-indigo-400" /> State:
+              <div className="text-xs font-semibold text-foreground-secondary flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> State:
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {regions.map((r) => (
@@ -249,7 +253,7 @@ export const Dashboard: React.FC = () => {
                     key={r.state_code}
                     onClick={() => setSelectedRegion(r.state_code)}
                     className={`px-3 py-1 rounded-xl text-xs font-semibold ${
-                      selectedRegion === r.state_code ? "bg-indigo-500 text-white" : "bg-slate-800/60 text-slate-300 hover:bg-slate-800"
+                      selectedRegion === r.state_code ? "bg-indigo-500 text-white" : "bg-surface-hover/60 text-foreground-secondary hover:bg-surface-hover"
                     }`}
                   >
                     {r.state_code}
@@ -257,14 +261,14 @@ export const Dashboard: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="pt-2 border-t border-slate-800/60 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2">
+            <div className="pt-2 border-t border-border/60 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                 {tradeCategories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap ${
-                      selectedCategory === cat ? "bg-slate-700 text-white" : "bg-slate-950/40 text-slate-400 hover:text-slate-200"
+                      selectedCategory === cat ? "bg-surface-hover text-white" : "bg-surface-sunken/40 text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {cat}
@@ -272,13 +276,13 @@ export const Dashboard: React.FC = () => {
                 ))}
               </div>
               <div className="relative min-w-[220px]">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search trades..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-surface-sunken/80 border border-border text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-indigo-500"
                 />
               </div>
             </div>
@@ -290,7 +294,7 @@ export const Dashboard: React.FC = () => {
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 ${
                     Math.abs(selectedOccupationCode - occ.nco_code) < 0.001
                       ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold"
-                      : "bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-slate-800/80"
+                      : "bg-surface-sunken/60 text-muted-foreground hover:text-foreground border border-border/80"
                   }`}
                 >
                   <span className="font-mono text-[10px] opacity-70">{occ.nco_code.toFixed(2)}</span>
@@ -303,14 +307,14 @@ export const Dashboard: React.FC = () => {
 
         {activeTab === "forecast" &&
           (loadingForecast && !forecastDetail ? (
-            <div className="h-72 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">
+            <div className="h-72 rounded-2xl bg-surface/40 border border-border flex items-center justify-center text-muted-foreground text-xs">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading forecast...
             </div>
           ) : forecastDetail ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
                     Forecast horizon
                     <HelpTip text="How many months ahead to show. The model always produces the full 12-month forecast — this only changes how much of it is displayed." />
                   </span>
@@ -320,7 +324,7 @@ export const Dashboard: React.FC = () => {
                         key={h}
                         onClick={() => setHorizonMonths(h)}
                         className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                          horizonMonths === h ? "bg-cyan-600 text-white" : "bg-slate-800/60 text-slate-400 hover:text-slate-200"
+                          horizonMonths === h ? "bg-cyan-600 text-white" : "bg-surface-hover/60 text-muted-foreground hover:text-foreground"
                         }`}
                       >
                         {h}mo
@@ -340,45 +344,45 @@ export const Dashboard: React.FC = () => {
                 <WorkforceGapPanel forecastDetail={forecastDetail} />
               </div>
               <div className="space-y-4">
-                <Card className="bg-slate-900/60 border-slate-800/80">
+                <Card className="bg-surface/60 border-border/80">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Evidence Grade</CardTitle>
                     <CardDescription className="text-[11px]">Deterministic score, 0-100</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-3xl font-black text-indigo-400">{forecastDetail.evidence_grade.grade}</span>
-                      <span className="font-mono text-slate-300">{forecastDetail.evidence_grade.score}/100</span>
+                      <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{forecastDetail.evidence_grade.grade}</span>
+                      <span className="font-mono text-foreground-secondary">{forecastDetail.evidence_grade.score}/100</span>
                     </div>
-                    <div className="space-y-1 pt-2 border-t border-slate-800/60">
-                      <div className="flex justify-between"><span className="text-slate-400">Volume</span><span>{forecastDetail.evidence_grade.volume_score}/40</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Agreement</span><span>{forecastDetail.evidence_grade.agreement_score}/35</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Recency</span><span>{forecastDetail.evidence_grade.recency_score}/25</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Observations</span><span>{forecastDetail.evidence_grade.observations_count}</span></div>
+                    <div className="space-y-1 pt-2 border-t border-border/60">
+                      <div className="flex justify-between"><span className="text-muted-foreground">Volume</span><span>{forecastDetail.evidence_grade.volume_score}/40</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Agreement</span><span>{forecastDetail.evidence_grade.agreement_score}/35</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Recency</span><span>{forecastDetail.evidence_grade.recency_score}/25</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Observations</span><span>{forecastDetail.evidence_grade.observations_count}</span></div>
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="bg-slate-900/60 border-slate-800/80">
+                <Card className="bg-surface/60 border-border/80">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">O*NET Mapped Skills</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-xs">
                     {selectedOccupationSkills.length > 0 ? (
                       selectedOccupationSkills.map((sk) => (
-                        <div key={sk.skill_id} className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80">
-                          <span className="text-slate-200">{sk.skill_name}</span>
-                          <span className="font-mono text-indigo-400">{(sk.importance_score * 100).toFixed(0)}%</span>
+                        <div key={sk.skill_id} className="flex items-center justify-between p-2 rounded-lg bg-surface-sunken/60 border border-border/80">
+                          <span className="text-foreground">{sk.skill_name}</span>
+                          <span className="font-mono text-indigo-600 dark:text-indigo-400">{(sk.importance_score * 100).toFixed(0)}%</span>
                         </div>
                       ))
                     ) : (
-                      <div className="text-slate-500">No curated skill mapping for this trade yet.</div>
+                      <div className="text-muted-foreground">No curated skill mapping for this trade yet.</div>
                     )}
                   </CardContent>
                 </Card>
               </div>
             </div>
           ) : (
-            <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
+            <div className="h-40 rounded-2xl bg-surface/40 border border-border flex items-center justify-center text-muted-foreground text-xs">
               No forecast data for this selection.
             </div>
           ))}
@@ -399,14 +403,14 @@ export const Dashboard: React.FC = () => {
               dataVintage={forecastDetail.data_vintage}
             />
           ) : (
-            <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
+            <div className="h-40 rounded-2xl bg-surface/40 border border-border flex items-center justify-center text-muted-foreground text-xs">
               Select a state and occupation on the Forecast tab first to run a scenario.
             </div>
           ))}
 
         {activeTab === "backtest" &&
           (loadingBacktest ? (
-            <div className="h-72 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">
+            <div className="h-72 rounded-2xl bg-surface/40 border border-border flex items-center justify-center text-muted-foreground text-xs">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading backtest replay...
             </div>
           ) : backtestDetail ? (
@@ -423,7 +427,7 @@ export const Dashboard: React.FC = () => {
               <CategoryPerformancePanel categoryMetrics={modelStatus?.category_metrics ?? null} />
             </div>
           ) : (
-            <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
+            <div className="h-40 rounded-2xl bg-surface/40 border border-border flex items-center justify-center text-muted-foreground text-xs">
               No backtest data for this selection.
             </div>
           ))}
@@ -440,7 +444,7 @@ const OpportunityRadarPanel: React.FC<{
 }> = ({ overview, onSelect }) => (
   <div className="space-y-5">
     <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/20 text-amber-200 text-xs flex items-start gap-2">
-      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+      <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
       <span>
         This view ranks segments by real computed net gap (demand minus the verified PLFS supply proxy) from the
         current panel. It is not yet a skill-combination co-occurrence detector — that is a separate, not-yet-built
@@ -460,23 +464,23 @@ const RadarTable: React.FC<{ title: string; items: MarketOverviewResponse["top_d
   tone,
   onSelect,
 }) => (
-  <Card className="bg-slate-900/60 border-slate-800/80">
+  <Card className="bg-surface/60 border-border/80">
     <CardHeader className="pb-2">
       <CardTitle className="text-sm">{title}</CardTitle>
     </CardHeader>
     <CardContent className="space-y-1.5">
-      {items.length === 0 && <div className="text-xs text-slate-500">No segments to show.</div>}
+      {items.length === 0 && <div className="text-xs text-muted-foreground">No segments to show.</div>}
       {items.map((item, i) => (
         <button
           key={`${item.state_code}-${item.nco_code}-${i}`}
           onClick={() => onSelect(item.nco_code, item.state_code)}
-          className="w-full text-left p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between text-xs"
+          className="w-full text-left p-2.5 rounded-lg bg-surface-sunken/60 border border-border/80 hover:border-indigo-500/50 flex items-center justify-between text-xs"
         >
           <div>
-            <div className="text-slate-200 font-medium">{item.title}</div>
-            <div className="text-slate-500">{item.state_name} &middot; {item.trade_category} &middot; Grade {item.evidence_grade}</div>
+            <div className="text-foreground font-medium">{item.title}</div>
+            <div className="text-muted-foreground">{item.state_name} &middot; {item.trade_category} &middot; Grade {item.evidence_grade}</div>
           </div>
-          <span className={`font-mono font-bold ${tone === "rose" ? "text-rose-400" : "text-emerald-400"}`}>
+          <span className={`font-mono font-bold ${tone === "rose" ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
             {item.net_gap > 0 ? "+" : ""}{item.net_gap.toFixed(1)}
           </span>
         </button>
@@ -488,16 +492,16 @@ const RadarTable: React.FC<{ title: string; items: MarketOverviewResponse["top_d
 const EvidenceValidationPanel: React.FC<{ validation: ModelStatusResponse["evidence_grade_validation"] }> = ({ validation }) => {
   if (!validation || validation.status !== "computed") {
     return (
-      <Card className="bg-slate-900/60 border-slate-800/80">
-        <CardContent className="p-4 text-xs text-slate-500">
-          Evidence-grade validation has not been computed yet. Run <code className="text-slate-300">python -m ml.evaluate.backtest</code>.
+      <Card className="bg-surface/60 border-border/80">
+        <CardContent className="p-4 text-xs text-muted-foreground">
+          Evidence-grade validation has not been computed yet. Run <code className="text-foreground-secondary">python -m ml.evaluate.backtest</code>.
         </CardContent>
       </Card>
     )
   }
   const supported = validation.hypothesis_low_evidence_means_higher_error_supported
   return (
-    <Card className="bg-slate-900/60 border-slate-800/80">
+    <Card className="bg-surface/60 border-border/80">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm">Does the evidence grade actually predict error?</CardTitle>
         <CardDescription className="text-[11px]">
@@ -513,7 +517,7 @@ const EvidenceValidationPanel: React.FC<{ validation: ModelStatusResponse["evide
         </div>
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-slate-500 border-b border-slate-800">
+            <tr className="text-muted-foreground border-b border-border">
               <th className="text-left py-1">Grade</th>
               <th className="text-right py-1">Mean Abs Error</th>
               <th className="text-right py-1">N segments</th>
@@ -521,16 +525,16 @@ const EvidenceValidationPanel: React.FC<{ validation: ModelStatusResponse["evide
           </thead>
           <tbody>
             {Object.entries(validation.mean_abs_error_by_grade ?? {}).map(([grade, stats]) => (
-              <tr key={grade} className="border-b border-slate-800/50">
-                <td className="py-1 text-slate-200 font-semibold">{grade}</td>
+              <tr key={grade} className="border-b border-border/50">
+                <td className="py-1 text-foreground font-semibold">{grade}</td>
                 <td className="py-1 text-right font-mono">{stats.mean_abs_error}</td>
-                <td className="py-1 text-right text-slate-400">{stats.n_segments}</td>
+                <td className="py-1 text-right text-muted-foreground">{stats.n_segments}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="text-slate-500">
-          Rank correlation (score vs. error): <span className="font-mono text-slate-300">{validation.spearman_like_rank_correlation_score_vs_error}</span>{" "}
+        <div className="text-muted-foreground">
+          Rank correlation (score vs. error): <span className="font-mono text-foreground-secondary">{validation.spearman_like_rank_correlation_score_vs_error}</span>{" "}
           over {validation.n_sufficient_graded_segments} segments. Small-sample, single-run result — see Data Trust Centre for the full disclosure.
         </div>
       </CardContent>
@@ -546,7 +550,7 @@ const CategoryPerformancePanel: React.FC<{ categoryMetrics: Record<string, any> 
   const rows = Object.entries(categoryMetrics).sort((a, b) => b[1].evaluated_segments - a[1].evaluated_segments)
 
   return (
-    <Card className="bg-slate-900/60 border-slate-800/80">
+    <Card className="bg-surface/60 border-border/80">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm">Model performance by trade category</CardTitle>
         <CardDescription className="text-[11px]">Real walk-forward backtest results, broken down by segment group — not just the single selected segment above</CardDescription>
@@ -554,7 +558,7 @@ const CategoryPerformancePanel: React.FC<{ categoryMetrics: Record<string, any> 
       <CardContent>
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-slate-500 border-b border-slate-800 text-left">
+            <tr className="text-muted-foreground border-b border-border text-left">
               <th className="py-1 pr-2">Category</th>
               <th className="py-1 pr-2 text-right">Segments</th>
               <th className="py-1 pr-2 text-right">Baseline MAE</th>
@@ -564,12 +568,12 @@ const CategoryPerformancePanel: React.FC<{ categoryMetrics: Record<string, any> 
           </thead>
           <tbody>
             {rows.map(([category, m]) => (
-              <tr key={category} className="border-b border-slate-800/50 hover:bg-slate-800/20">
-                <td className="py-1.5 pr-2 text-slate-200">{category}</td>
-                <td className="py-1.5 pr-2 text-right text-slate-400">{m.evaluated_segments}</td>
-                <td className="py-1.5 pr-2 text-right font-mono text-amber-400">{m.baseline_mean_mae}</td>
-                <td className="py-1.5 pr-2 text-right font-mono text-cyan-400">{m.candidate_mean_mae}</td>
-                <td className={`py-1.5 text-right font-mono font-semibold ${m.candidate_win_rate_pct >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
+              <tr key={category} className="border-b border-border/50 hover:bg-surface-hover/20">
+                <td className="py-1.5 pr-2 text-foreground">{category}</td>
+                <td className="py-1.5 pr-2 text-right text-muted-foreground">{m.evaluated_segments}</td>
+                <td className="py-1.5 pr-2 text-right font-mono text-amber-600 dark:text-amber-400">{m.baseline_mean_mae}</td>
+                <td className="py-1.5 pr-2 text-right font-mono text-cyan-600 dark:text-cyan-400">{m.candidate_mean_mae}</td>
+                <td className={`py-1.5 text-right font-mono font-semibold ${m.candidate_win_rate_pct >= 50 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                   {m.candidate_win_rate_pct}%
                 </td>
               </tr>
@@ -606,36 +610,36 @@ const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marke
 
   return (
     <div className="space-y-5">
-      <Card className="bg-slate-900/60 border-slate-800/80">
+      <Card className="bg-surface/60 border-border/80">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-indigo-400" /> Data sources &amp; classification</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Data sources &amp; classification</CardTitle>
           <CardDescription className="text-[11px]">
             Live from <code>GET /data-trust</code> — click a source for its full citation and limitations
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-xs">
-          {loading && <div className="text-slate-500">Loading manifest...</div>}
-          {!loading && !manifest && <div className="text-rose-400">Could not load the data trust manifest from the API.</div>}
+          {loading && <div className="text-muted-foreground">Loading manifest...</div>}
+          {!loading && !manifest && <div className="text-rose-600 dark:text-rose-400">Could not load the data trust manifest from the API.</div>}
           {manifest?.sources.map((src) => {
             const meta = CLASSIFICATION_META[src.classification] ?? CLASSIFICATION_META.estimated
             const isOpen = expanded === src.name
             return (
-              <div key={src.name} className="rounded-lg bg-slate-950/60 border border-slate-800/80 overflow-hidden">
+              <div key={src.name} className="rounded-lg bg-surface-sunken/60 border border-border/80 overflow-hidden">
                 <button
                   onClick={() => setExpanded(isOpen ? null : src.name)}
-                  className="w-full p-2.5 flex items-center justify-between text-left hover:bg-slate-900/40 transition-colors"
+                  className="w-full p-2.5 flex items-center justify-between text-left hover:bg-surface/40 transition-colors"
                 >
                   <div>
-                    <span className="text-slate-200 font-medium">{src.name}</span>
-                    <span className="text-slate-500 ml-2 text-[10px]">{src.source_type}</span>
+                    <span className="text-foreground font-medium">{src.name}</span>
+                    <span className="text-muted-foreground ml-2 text-[10px]">{src.source_type}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Badge variant={meta.variant}>{meta.label}</Badge>
-                    <span className="text-slate-500 text-[10px]">{isOpen ? "▲" : "▼"}</span>
+                    <span className="text-muted-foreground text-[10px]">{isOpen ? "▲" : "▼"}</span>
                   </div>
                 </button>
                 {isOpen && (
-                  <div className="p-3 pt-0 space-y-1.5 text-[11px] text-slate-400 border-t border-slate-800/60">
+                  <div className="p-3 pt-0 space-y-1.5 text-[11px] text-muted-foreground border-t border-border/60">
                     <DetailRow label="Observation period" value={src.observation_period ?? "—"} />
                     <DetailRow label="Publication date" value={src.publication_date ?? "—"} />
                     <DetailRow label="Geographic coverage" value={src.geographic_coverage} />
@@ -645,13 +649,13 @@ const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marke
                       <DetailRow
                         label="Source"
                         value={
-                          <a href={src.citation_url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline break-all">
+                          <a href={src.citation_url} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline break-all">
                             {src.citation_url}
                           </a>
                         }
                       />
                     )}
-                    <div className="pt-1.5 border-t border-slate-800/60 text-amber-200/80">
+                    <div className="pt-1.5 border-t border-border/60 text-amber-200/80">
                       <strong className="text-amber-300">Limitations:</strong> {src.limitations}
                     </div>
                   </div>
@@ -662,7 +666,7 @@ const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marke
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/60 border-slate-800/80">
+      <Card className="bg-surface/60 border-border/80">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Live panel quality</CardTitle>
           <CardDescription className="text-[11px]">Computed from the current panel file at request time, not cached</CardDescription>
@@ -678,10 +682,10 @@ const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marke
           )}
           {manifest?.panel_quality && (
             <div>
-              <div className="text-slate-400 mb-1.5">Missingness by column (0% expected — rows with gaps are excluded, not filled)</div>
+              <div className="text-muted-foreground mb-1.5">Missingness by column (0% expected — rows with gaps are excluded, not filled)</div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                 {Object.entries(manifest.panel_quality.missingness_pct).map(([col, pct]) => (
-                  <div key={col} className={`px-2 py-1 rounded-md text-[10px] font-mono flex justify-between ${pct > 0 ? "bg-rose-950/40 text-rose-300" : "bg-slate-950/60 text-slate-500"}`}>
+                  <div key={col} className={`px-2 py-1 rounded-md text-[10px] font-mono flex justify-between ${pct > 0 ? "bg-rose-950/40 text-rose-300" : "bg-surface-sunken/60 text-muted-foreground"}`}>
                     <span>{col}</span>
                     <span>{pct}%</span>
                   </div>
@@ -692,29 +696,29 @@ const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marke
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900/60 border-slate-800/80">
+      <Card className="bg-surface/60 border-border/80">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Data freshness &amp; model provenance</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-            <div className="text-slate-400">Data vintage</div>
-            <div className="font-mono text-slate-200 text-sm">{marketOverview?.latest_data_vintage ?? "—"}</div>
-            <div className="text-amber-400 text-[10px] mt-1">Periodically refreshed — never real-time</div>
+          <div className="p-3 rounded-lg bg-surface-sunken/60 border border-border/80">
+            <div className="text-muted-foreground">Data vintage</div>
+            <div className="font-mono text-foreground text-sm">{marketOverview?.latest_data_vintage ?? "—"}</div>
+            <div className="text-amber-600 dark:text-amber-400 text-[10px] mt-1">Periodically refreshed — never real-time</div>
           </div>
-          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-            <div className="text-slate-400">Training window</div>
-            <div className="font-mono text-slate-200 text-sm">
+          <div className="p-3 rounded-lg bg-surface-sunken/60 border border-border/80">
+            <div className="text-muted-foreground">Training window</div>
+            <div className="font-mono text-foreground text-sm">
               {modelStatus ? `${modelStatus.training_window.start_date} → ${modelStatus.training_window.end_date}` : "—"}
             </div>
           </div>
-          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-            <div className="text-slate-400">Candidate model</div>
-            <div className="text-slate-200">{modelStatus?.candidate_model ?? "—"}</div>
+          <div className="p-3 rounded-lg bg-surface-sunken/60 border border-border/80">
+            <div className="text-muted-foreground">Candidate model</div>
+            <div className="text-foreground">{modelStatus?.candidate_model ?? "—"}</div>
           </div>
-          <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
-            <div className="text-slate-400">Baseline model</div>
-            <div className="text-slate-200">{modelStatus?.baseline_model ?? "—"}</div>
+          <div className="p-3 rounded-lg bg-surface-sunken/60 border border-border/80">
+            <div className="text-muted-foreground">Baseline model</div>
+            <div className="text-foreground">{modelStatus?.baseline_model ?? "—"}</div>
           </div>
         </CardContent>
       </Card>
@@ -724,8 +728,8 @@ const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marke
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="flex items-start justify-between gap-3">
-    <span className="text-slate-500 shrink-0">{label}</span>
-    <span className="text-slate-300 text-right">{value}</span>
+    <span className="text-muted-foreground shrink-0">{label}</span>
+    <span className="text-foreground-secondary text-right">{value}</span>
   </div>
 )
 
@@ -754,14 +758,14 @@ const SkillUniversePanel: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-72 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-slate-400 text-xs">
+      <div className="h-72 rounded-2xl bg-surface/40 border border-border flex items-center justify-center text-muted-foreground text-xs">
         <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading skill graph...
       </div>
     )
   }
   if (error || !graph) {
     return (
-      <div className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center text-rose-400 text-xs">
+      <div className="h-40 rounded-2xl bg-surface/40 border border-border flex items-center justify-center text-rose-600 dark:text-rose-400 text-xs">
         {error ?? "No graph data available."}
       </div>
     )
@@ -769,27 +773,27 @@ const SkillUniversePanel: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-slate-900/60 border-slate-800/80">
+      <Card className="bg-surface/60 border-border/80">
         <CardContent className="p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2 text-slate-400">
-            <Globe className="w-4 h-4 text-indigo-400" />
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Globe className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             <span>
-              <strong className="text-slate-200">{graph.occupation_count}</strong> occupations &middot;{" "}
-              <strong className="text-slate-200">{graph.skill_count}</strong> real O*NET-derived skills &middot;{" "}
-              <strong className="text-slate-200">{graph.edge_count}</strong> real required-skill relationships
+              <strong className="text-foreground">{graph.occupation_count}</strong> occupations &middot;{" "}
+              <strong className="text-foreground">{graph.skill_count}</strong> real O*NET-derived skills &middot;{" "}
+              <strong className="text-foreground">{graph.edge_count}</strong> real required-skill relationships
             </span>
             <HelpTip text={graph.data_note} />
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setView("3d")}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 ${view === "3d" ? "bg-indigo-600 text-white" : "bg-slate-800/60 text-slate-400"}`}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 ${view === "3d" ? "bg-indigo-600 text-white" : "bg-surface-hover/60 text-muted-foreground"}`}
             >
               <Box className="w-3 h-3" /> 3D
             </button>
             <button
               onClick={() => setView("2d")}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 ${view === "2d" ? "bg-indigo-600 text-white" : "bg-slate-800/60 text-slate-400"}`}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 ${view === "2d" ? "bg-indigo-600 text-white" : "bg-surface-hover/60 text-muted-foreground"}`}
             >
               <List className="w-3 h-3" /> 2D table
             </button>
@@ -798,7 +802,7 @@ const SkillUniversePanel: React.FC = () => {
       </Card>
 
       <div className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-500/20 text-amber-200/80 text-[11px] flex items-start gap-2">
-        <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+        <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
         {graph.data_note}
       </div>
 
@@ -806,7 +810,7 @@ const SkillUniversePanel: React.FC = () => {
         isWebGLAvailable() ? (
           <SkillUniverse3D nodes={graph.nodes} edges={graph.edges} categories={categories} />
         ) : (
-          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 text-amber-300 text-xs">
+          <div className="p-4 rounded-2xl bg-surface/40 border border-border text-amber-300 text-xs">
             WebGL isn't available in this browser/device — showing the 2D table instead.
             <SkillUniverse2D nodes={graph.nodes} edges={graph.edges} categories={categories} />
           </div>
@@ -819,9 +823,9 @@ const SkillUniversePanel: React.FC = () => {
 }
 
 const ResultStat: React.FC<{ label: string; value: string; tone?: "emerald" | "amber" }> = ({ label, value, tone }) => (
-  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-    <div className="text-[10px] text-slate-400">{label}</div>
-    <div className={`font-mono font-bold ${tone === "emerald" ? "text-emerald-400" : tone === "amber" ? "text-amber-400" : "text-slate-200"}`}>{value}</div>
+  <div className="p-2.5 rounded-lg bg-surface-sunken/60 border border-border/80">
+    <div className="text-[10px] text-muted-foreground">{label}</div>
+    <div className={`font-mono font-bold ${tone === "emerald" ? "text-emerald-600 dark:text-emerald-400" : tone === "amber" ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>{value}</div>
   </div>
 )
 
@@ -830,8 +834,8 @@ const ResultStat: React.FC<{ label: string; value: string; tone?: "emerald" | "a
  * don't need a permanent block of prose cluttering the main view. */
 const HelpTip: React.FC<{ text: string }> = ({ text }) => (
   <span className="group relative inline-flex">
-    <HelpCircle className="w-3 h-3 text-slate-500 hover:text-slate-300 cursor-help" />
-    <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-56 p-2 rounded-lg bg-slate-900 border border-slate-700 text-[10px] text-slate-300 font-normal opacity-0 group-hover:opacity-100 transition-opacity z-30 shadow-xl">
+    <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground-secondary cursor-help" />
+    <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-56 p-2 rounded-lg bg-surface border border-border text-[10px] text-foreground-secondary font-normal opacity-0 group-hover:opacity-100 transition-opacity z-30 shadow-xl">
       {text}
     </span>
   </span>
@@ -851,43 +855,43 @@ const InsightExplanationPanel: React.FC<{
       : "unknown"
 
   return (
-    <Card className="bg-slate-900/60 border-slate-800/80">
+    <Card className="bg-surface/60 border-border/80">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Lightbulb className="w-4 h-4 text-amber-400" />
+          <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           What this means
         </CardTitle>
         <CardDescription className="text-[11px]">Generated from the actual values on screen — not an invented explanation</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2 text-xs text-slate-300">
+      <CardContent className="space-y-2 text-xs text-foreground-secondary">
         <p>
-          <strong className="text-slate-100">What the data indicates:</strong> over the {forecastDetail.historical_series.length}-month
+          <strong className="text-foreground">What the data indicates:</strong> over the {forecastDetail.historical_series.length}-month
           observed window ({earliest?.year_month} &ndash; {latest?.year_month}), demand for{" "}
           <strong>{forecastDetail.occupation.title}</strong> in {forecastDetail.region.state_name} has {trendDirection}, and the
           latest observation shows {gapDirection} of {latest ? Math.abs(latest.net_gap).toFixed(1) : "—"} index points.
         </p>
         <p>
-          <strong className="text-slate-100">What the model indicates:</strong>{" "}
+          <strong className="text-foreground">What the model indicates:</strong>{" "}
           {forecastDetail.is_sufficient
             ? `a ${forecastDetail.evidence_grade.score >= 80 ? "high" : "moderate"}-confidence forecast is available (Grade ${forecastDetail.evidence_grade.grade}), based on ${forecastDetail.evidence_grade.observations_count} real observations.`
             : `no forecast was produced — ${forecastDetail.gating_reason ?? "insufficient history"}. The system does not fabricate a number here.`}
         </p>
         {backtestDetail && backtestDetail.backtest_steps > 0 && (
           <p>
-            <strong className="text-slate-100">How the model performed historically:</strong> across {backtestDetail.backtest_steps} real
+            <strong className="text-foreground">How the model performed historically:</strong> across {backtestDetail.backtest_steps} real
             backtest steps, the candidate model's mean absolute error was {backtestDetail.candidate_mean_abs_error?.toFixed(2)}, versus{" "}
             {backtestDetail.baseline_mean_abs_error?.toFixed(2)} for the naive baseline (
             {backtestDetail.candidate_mean_abs_error! < backtestDetail.baseline_mean_abs_error! ? "candidate wins" : "baseline wins"} on this segment).
           </p>
         )}
         <p>
-          <strong className="text-slate-100">What remains uncertain:</strong> the demand series here is a synthetic demonstration
+          <strong className="text-foreground">What remains uncertain:</strong> the demand series here is a synthetic demonstration
           signal (see Data Trust Centre), so this specific trend should be read as illustrative of the pipeline's behaviour, not as a
           validated real-world trend. The supply figure is a real, verified PLFS state-level employment share, not a monthly or
           district-level observation.
         </p>
-        <p className="text-slate-500">
-          <strong className="text-slate-400">Investigate next:</strong> compare this segment's evidence grade against its real
+        <p className="text-muted-foreground">
+          <strong className="text-muted-foreground">Investigate next:</strong> compare this segment's evidence grade against its real
           backtest error on the Backtest tab, or check the Opportunity Radar to see how this segment ranks against others.
         </p>
       </CardContent>
@@ -901,31 +905,31 @@ const WorkforceGapPanel: React.FC<{ forecastDetail: ForecastDetailResponse }> = 
   const latest = forecastDetail.historical_series[forecastDetail.historical_series.length - 1]
   if (!latest) return null
   return (
-    <Card className="bg-slate-900/60 border-slate-800/80">
+    <Card className="bg-surface/60 border-border/80">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm">Workforce Gap Analysis</CardTitle>
         <CardDescription className="text-[11px]">Demand vs. a defensible supply proxy — not an exact worker count</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-xs">
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-            <div className="text-slate-400 flex items-center gap-1">
+          <div className="p-2.5 rounded-lg bg-surface-sunken/60 border border-border/80">
+            <div className="text-muted-foreground flex items-center gap-1">
               Demand measure <HelpTip text="A demonstration index derived from the verified supply baseline plus a documented synthetic trend/seasonality generator. Not a real job-postings count." />
             </div>
-            <div className="font-mono text-lg font-bold text-emerald-400 mt-1">{latest.demand_index.toFixed(1)}</div>
-            <div className="text-[10px] text-slate-500 mt-1">Unit: demonstration index &middot; {latest.year_month}</div>
+            <div className="font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">{latest.demand_index.toFixed(1)}</div>
+            <div className="text-[10px] text-muted-foreground mt-1">Unit: demonstration index &middot; {latest.year_month}</div>
           </div>
-          <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-            <div className="text-slate-400 flex items-center gap-1">
+          <div className="p-2.5 rounded-lg bg-surface-sunken/60 border border-border/80">
+            <div className="text-muted-foreground flex items-center gap-1">
               Supply measure <HelpTip text="Real PLFS Annual Report 2023-24, Table 27 state-level industry employment share. An annual labour-force statistic, not a monthly figure and not a count of qualified/trained workers." />
             </div>
-            <div className="font-mono text-lg font-bold text-indigo-400 mt-1">{latest.supply_index.toFixed(1)}</div>
-            <div className="text-[10px] text-slate-500 mt-1">Unit: % industry employment share &middot; annual</div>
+            <div className="font-mono text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-1">{latest.supply_index.toFixed(1)}</div>
+            <div className="text-[10px] text-muted-foreground mt-1">Unit: % industry employment share &middot; annual</div>
           </div>
         </div>
-        <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80">
-          <div className="text-slate-400">Coverage</div>
-          <div className="text-slate-200 mt-0.5">
+        <div className="p-2.5 rounded-lg bg-surface-sunken/60 border border-border/80">
+          <div className="text-muted-foreground">Coverage</div>
+          <div className="text-foreground mt-0.5">
             {forecastDetail.region.state_name}, {forecastDetail.occupation.trade_category} &middot; {forecastDetail.historical_series.length} monthly observations
           </div>
         </div>

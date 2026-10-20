@@ -2,37 +2,108 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens: one source of truth for both themes. :root holds LIGHT
+   values (the default per shadcn convention); .dark overrides to today's
+   existing dark identity, unchanged in hue from before this system existed
+   - only now expressed as tokens instead of hardcoded utility classes. */
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
-    --card: 222.2 84% 7%;
-    --card-foreground: 210 40% 98%;
+    --surface: 0 0% 100%;
+    --surface-foreground: 222 47% 11%;
+    --surface-sunken: 210 40% 96%;
+    --surface-hover: 210 40% 93%;
 
-    --popover: 222.2 84% 7%;
-    --popover-foreground: 210 40% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --secondary: 210 40% 94%;
+    --secondary-foreground: 222 47% 11%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 16% 40%;
+    --foreground-secondary: 215 19% 30%;
 
-    --destructive: 0 62.8% 30.6%;
+    --accent: 210 40% 94%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --success: 152 60% 36%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 40%;
+    --warning-foreground: 210 40% 98%;
 
-    --radius: 0.5rem;
+    --border: 214 24% 87%;
+    --input: 214 24% 87%;
+    --ring: 243 75% 59%;
+
+    /* Chart series - distinct from generic accents so a chart's meaning
+       (demand/supply/candidate/baseline) stays visually consistent and
+       readable against either surface. */
+    --chart-demand: 152 60% 36%;
+    --chart-supply: 243 65% 55%;
+    --chart-forecast: 189 85% 38%;
+    --chart-baseline: 32 90% 45%;
+    --chart-grid: 214 24% 85%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 47% 4%;
+    --foreground: 210 40% 98%;
+
+    --surface: 222 39% 7%;
+    --surface-foreground: 210 40% 98%;
+    --surface-sunken: 222 40% 5%;
+    --surface-hover: 217 33% 18%;
+
+    --card: 222 39% 9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 39% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 234 89% 74%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --foreground-secondary: 213 20% 80%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 48%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 152 69% 45%;
+    --success-foreground: 222 47% 11%;
+    --warning: 38 95% 58%;
+    --warning-foreground: 222 47% 11%;
+
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 234 89% 74%;
+
+    --chart-demand: 152 69% 45%;
+    --chart-supply: 234 89% 74%;
+    --chart-forecast: 189 94% 53%;
+    --chart-baseline: 38 95% 58%;
+    --chart-grid: 217 33% 22%;
   }
 }
 
@@ -40,8 +111,14 @@
   * {
     @apply border-border;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
-    @apply bg-background text-foreground antialiased min-h-screen selection:bg-primary/20 selection:text-primary;
+    @apply bg-background text-foreground antialiased min-h-screen selection:bg-primary/20 selection:text-primary transition-colors duration-200;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 }
