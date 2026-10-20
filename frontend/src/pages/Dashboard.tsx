@@ -14,6 +14,7 @@ import {
   HelpCircle,
   Lightbulb,
   Globe,
+  Compass,
   Box,
   List,
 } from "lucide-react"
@@ -26,6 +27,7 @@ import { WhatIfSimulator } from "@/components/WhatIfSimulator"
 import { SkillUniverse3D } from "@/components/SkillUniverse3D"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { OccupationExplorer } from "@/components/OccupationExplorer"
+import { GuidedDemo, DEMO_STEPS } from "@/components/GuidedDemo"
 import { SkillUniverse2D, isWebGLAvailable } from "@/components/SkillUniverse2D"
 import { api, ApiError } from "@/lib/api"
 import {
@@ -49,6 +51,8 @@ export const Dashboard: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [horizonMonths, setHorizonMonths] = useState<number>(6)
+  const [demoActive, setDemoActive] = useState(false)
+  const [demoStep, setDemoStep] = useState(0)
 
   const [regions, setRegions] = useState<Region[]>([])
   const [occupations, setOccupations] = useState<Occupation[]>([])
@@ -118,6 +122,23 @@ export const Dashboard: React.FC = () => {
     }
   }, [selectedOccupationCode, selectedRegion, fetchSegmentDetail])
 
+  // Guided demo drives the app's REAL state - same setters a user would
+  // trigger by clicking - rather than rendering a separate fake UI.
+  useEffect(() => {
+    if (!demoActive) return
+    const step = DEMO_STEPS[demoStep]
+    setActiveTab(step.tab)
+    if (step.region) setSelectedRegion(step.region)
+    if (step.occupationCode) setSelectedOccupationCode(step.occupationCode)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoActive, demoStep])
+
+  const startDemo = () => {
+    setDemoStep(0)
+    setDemoActive(true)
+  }
+  const exitDemo = () => setDemoActive(false)
+
   const tradeCategories = useMemo(
     () => ["ALL", ...Array.from(new Set(occupations.map((o) => o.trade_category)))],
     [occupations]
@@ -156,6 +177,15 @@ export const Dashboard: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-3 self-start lg:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startDemo}
+              className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+            >
+              <Compass className="w-3.5 h-3.5 mr-2" />
+              Guided demo
+            </Button>
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={fetchInitialData} disabled={loadingInitial} className="border-border bg-surface/80 hover:bg-surface-hover">
               <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loadingInitial ? "animate-spin text-indigo-600 dark:text-indigo-400" : ""}`} />
@@ -406,6 +436,15 @@ export const Dashboard: React.FC = () => {
 
         {activeTab === "trust" && <DataTrustCentre modelStatus={modelStatus} marketOverview={marketOverview} />}
       </div>
+
+      {demoActive && (
+        <GuidedDemo
+          stepIndex={demoStep}
+          onNext={() => setDemoStep((s) => Math.min(s + 1, DEMO_STEPS.length - 1))}
+          onBack={() => setDemoStep((s) => Math.max(s - 1, 0))}
+          onExit={exitDemo}
+        />
+      )}
     </div>
   )
 }
