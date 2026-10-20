@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import { GraphNode, GraphEdge } from "@/components/SkillUniverse3D"
 
@@ -6,17 +6,28 @@ interface Props {
   nodes: GraphNode[]
   edges: GraphEdge[]
   categories: string[]
+  /** Same cross-app link as the 3D view: when the occupation selected
+   * elsewhere changes, pre-filter this table to it so the two views stay
+   * in sync instead of being disconnected features. */
+  focusOccupationCode?: number | null
 }
 
 /** Accessible, keyboard-navigable 2D alternative to the 3D graph: the same
  * real occupation<->skill edges as a searchable, filterable, sortable
  * table. Not a decorative fallback - every row is a real relationship. */
-export const SkillUniverse2D: React.FC<Props> = ({ nodes, edges, categories }) => {
+export const SkillUniverse2D: React.FC<Props> = ({ nodes, edges, categories, focusOccupationCode }) => {
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("ALL")
   const [sortDesc, setSortDesc] = useState(true)
 
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes])
+
+  useEffect(() => {
+    if (focusOccupationCode == null) return
+    const match = nodes.find((n) => n.type === "occupation" && Math.abs((n.meta?.nco_code ?? NaN) - focusOccupationCode) < 0.001)
+    if (match) setSearch(match.label)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusOccupationCode, nodes])
 
   const rows = useMemo(() => {
     const built = edges
@@ -79,7 +90,7 @@ export const SkillUniverse2D: React.FC<Props> = ({ nodes, edges, categories }) =
             {rows.map((r, i) => (
               <tr key={i} className="border-b border-border/50 hover:bg-surface-hover/30">
                 <td className="py-1.5 pr-3 text-foreground">{r.occTitle}</td>
-                <td className="py-1.5 pr-3 text-cyan-300">{r.skillLabel}</td>
+                <td className="py-1.5 pr-3 text-cyan-700 dark:text-cyan-300">{r.skillLabel}</td>
                 <td className="py-1.5 pr-3 text-muted-foreground">{r.skillCategory}</td>
                 <td className="py-1.5 pr-3 font-mono text-indigo-600 dark:text-indigo-400">{(r.weight * 100).toFixed(0)}%</td>
               </tr>

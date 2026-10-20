@@ -71,7 +71,7 @@ export const BacktestChart: React.FC<Props> = ({
         <div className="flex items-center gap-2 text-[11px]">
           <span className="px-2 py-1 rounded-md bg-surface-hover/60 text-foreground-secondary">Grade {evidenceGrade}</span>
           {candidateMeanAbsError !== null && (
-            <span className={`px-2 py-1 rounded-md font-semibold ${candidateWins ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"}`}>
+            <span className={`px-2 py-1 rounded-md font-semibold ${candidateWins ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-rose-500/15 text-rose-700 dark:text-rose-300"}`}>
               Candidate MAE {candidateMeanAbsError.toFixed(2)} {candidateWins ? "< " : "> "}
               Baseline {baselineMeanAbsError?.toFixed(2)}
             </span>

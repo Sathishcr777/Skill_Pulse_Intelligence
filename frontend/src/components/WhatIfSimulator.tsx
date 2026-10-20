@@ -62,7 +62,7 @@ export const WhatIfSimulator: React.FC<Props> = ({
               {occupationTitle} &middot; {stateCode} &middot; baseline from data vintage {dataVintage}
             </CardDescription>
           </div>
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
             HYPOTHETICAL — NOT A FORECAST
           </span>
         </div>

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { OrbitControls, Html, Line } from "@react-three/drei"
 import * as THREE from "three"
@@ -145,7 +145,7 @@ const NodeMesh: React.FC<{
       </mesh>
       {(isSelected || node.type === "occupation") && !isDimmed && (
         <Html distanceFactor={14} center style={{ pointerEvents: "none" }}>
-          <div className={`px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap font-mono ${node.type === "occupation" ? "bg-surface/80 text-foreground" : "bg-surface/80 text-cyan-300"}`}>
+          <div className={`px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap font-mono ${node.type === "occupation" ? "bg-surface/80 text-foreground" : "bg-surface/80 text-cyan-700 dark:text-cyan-300"}`}>
             {node.label}
           </div>
         </Html>
@@ -210,9 +210,15 @@ interface Props {
   nodes: GraphNode[]
   edges: GraphEdge[]
   categories: string[]
+  /** Real nco_code of the occupation currently selected elsewhere in the
+   * app (Forecast tab, etc.). When set, the graph auto-selects and
+   * focuses that occupation's real node on mount / whenever it changes -
+   * this is what actually connects the 3D view to the rest of the app
+   * instead of it being an isolated, disconnected feature. */
+  focusOccupationCode?: number | null
 }
 
-export const SkillUniverse3D: React.FC<Props> = ({ nodes, edges, categories }) => {
+export const SkillUniverse3D: React.FC<Props> = ({ nodes, edges, categories, focusOccupationCode }) => {
   const { theme } = useTheme()
   const isDark = theme === "dark"
   const [selected, setSelected] = useState<LaidOutNode | null>(null)
@@ -221,7 +227,18 @@ export const SkillUniverse3D: React.FC<Props> = ({ nodes, edges, categories }) =
 
   const laidOutNodes = useMemo(() => layoutGraph(nodes, edges), [nodes, edges])
 
-  const filteredIds = useMemo(() => {
+  useEffect(() => {
+    if (focusOccupationCode == null) return
+    const match = laidOutNodes.find((n) => n.type === "occupation" && Math.abs((n.meta?.nco_code ?? NaN) - focusOccupationCode) < 0.001)
+    if (match) setSelected(match)
+    // Intentionally re-runs only when the externally-selected occupation
+    // changes or the graph itself reloads - not on every laidOutNodes
+    // recompute, so a user's own in-graph click isn't immediately
+    // overridden by a stale focus value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusOccupationCode, nodes])
+
+  const searchFilterIds = useMemo(() => {
     if (categoryFilter === "ALL" && !search.trim()) return null
     const matches = laidOutNodes.filter((n) => {
       const matchesCategory = categoryFilter === "ALL" || n.category === categoryFilter
@@ -237,6 +254,22 @@ export const SkillUniverse3D: React.FC<Props> = ({ nodes, edges, categories }) =
     })
     return ids
   }, [laidOutNodes, edges, search, categoryFilter])
+
+  // When nothing is actively searched/filtered but a node IS selected
+  // (whether by click or by the cross-app focus link above), focus the
+  // view on that node's real connections instead of showing everything
+  // at equal weight - this is what makes "select an occupation" actually
+  // highlight its related skills, per the Phase 4 requirement.
+  const filteredIds = useMemo(() => {
+    if (searchFilterIds) return searchFilterIds
+    if (!selected) return null
+    const ids = new Set<string>([selected.id])
+    edges.forEach((e) => {
+      if (e.source === selected.id) ids.add(e.target)
+      if (e.target === selected.id) ids.add(e.source)
+    })
+    return ids
+  }, [searchFilterIds, selected, edges])
 
   const selectedConnections = useMemo(() => {
     if (!selected) return []

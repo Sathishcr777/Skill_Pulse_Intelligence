@@ -139,7 +139,7 @@ export const TimeSeriesChart: React.FC<Props> = ({
           <button
             onClick={() => setShowSupply(!showSupply)}
             className={`px-2 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 ${
-              showSupply ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30" : "bg-surface-hover/40 text-muted-foreground"
+              showSupply ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30" : "bg-surface-hover/40 text-muted-foreground"
             }`}
           >
             {showSupply ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
@@ -149,7 +149,7 @@ export const TimeSeriesChart: React.FC<Props> = ({
             <button
               onClick={() => setShowBounds(!showBounds)}
               className={`px-2 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 ${
-                showBounds ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" : "bg-surface-hover/40 text-muted-foreground"
+                showBounds ? "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30" : "bg-surface-hover/40 text-muted-foreground"
               }`}
             >
               {showBounds ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
@@ -160,11 +160,11 @@ export const TimeSeriesChart: React.FC<Props> = ({
       </div>
 
       {!isSufficient && (
-        <div className="mb-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2">
+        <div className="mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <div className="font-semibold text-amber-300">Insufficient history — no forecast produced</div>
-            <div className="text-amber-200/80 mt-0.5">
+            <div className="font-semibold text-amber-700 dark:text-amber-300">Insufficient history — no forecast produced</div>
+            <div className="text-amber-700 dark:text-amber-200/80 mt-0.5">
               {gatingReason || "Below the statistical-sufficiency threshold."} Per project rule, the system never
               fabricates a prediction here.
             </div>
@@ -258,7 +258,7 @@ export const TimeSeriesChart: React.FC<Props> = ({
               </div>
             )}
             {hoverItem.lowerBound !== null && hoverItem.upperBound !== null && (
-              <div className="flex items-center justify-between gap-4 text-cyan-200/70 text-[11px]">
+              <div className="flex items-center justify-between gap-4 text-cyan-700 dark:text-cyan-200/70 text-[11px]">
                 <span>95% bounds:</span>
                 <span>[{hoverItem.lowerBound.toFixed(1)} - {hoverItem.upperBound.toFixed(1)}]</span>
               </div>

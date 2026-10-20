@@ -165,12 +165,12 @@ export const Dashboard: React.FC = () => {
         </header>
 
         {error && (
-          <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-sm flex items-center justify-between">
+          <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-500/30 text-rose-700 dark:text-rose-200 text-sm flex items-center justify-between">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
               <span>{error}</span>
             </div>
-            <Button size="sm" variant="outline" onClick={fetchInitialData} className="border-rose-500/40 text-rose-200">Retry</Button>
+            <Button size="sm" variant="outline" onClick={fetchInitialData} className="border-rose-500/40 text-rose-700 dark:text-rose-200">Retry</Button>
           </div>
         )}
 
@@ -363,7 +363,7 @@ export const Dashboard: React.FC = () => {
           <OpportunityRadarPanel overview={marketOverview} onSelect={handleSelectSegment} />
         )}
 
-        {activeTab === "universe" && <SkillUniversePanel />}
+        {activeTab === "universe" && <SkillUniversePanel focusOccupationCode={selectedOccupationCode} />}
 
         {activeTab === "whatif" &&
           (forecastDetail && forecastDetail.historical_series.length > 0 ? (
@@ -415,7 +415,7 @@ const OpportunityRadarPanel: React.FC<{
   onSelect: (nco: number, state: string) => void
 }> = ({ overview, onSelect }) => (
   <div className="space-y-5">
-    <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/20 text-amber-200 text-xs flex items-start gap-2">
+    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-50 dark:bg-amber-950/30 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
       <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
       <span>
         This view ranks segments by real computed net gap (demand minus the verified PLFS supply proxy) from the
@@ -481,7 +481,7 @@ const EvidenceValidationPanel: React.FC<{ validation: ModelStatusResponse["evide
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-xs">
-        <div className={`flex items-center gap-2 p-2.5 rounded-lg ${supported ? "bg-emerald-950/30 text-emerald-300" : "bg-rose-950/30 text-rose-300"}`}>
+        <div className={`flex items-center gap-2 p-2.5 rounded-lg ${supported ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300" : "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300"}`}>
           {supported ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
           <span className="font-semibold">
             Hypothesis ("lower evidence grade correlates with higher real error") {supported ? "supported" : "not supported"} by this run.
@@ -627,8 +627,8 @@ const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marke
                         }
                       />
                     )}
-                    <div className="pt-1.5 border-t border-border/60 text-amber-200/80">
-                      <strong className="text-amber-300">Limitations:</strong> {src.limitations}
+                    <div className="pt-1.5 border-t border-border/60 text-amber-700 dark:text-amber-200/80">
+                      <strong className="text-amber-700 dark:text-amber-300">Limitations:</strong> {src.limitations}
                     </div>
                   </div>
                 )}
@@ -657,7 +657,7 @@ const DataTrustCentre: React.FC<{ modelStatus: ModelStatusResponse | null; marke
               <div className="text-muted-foreground mb-1.5">Missingness by column (0% expected — rows with gaps are excluded, not filled)</div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                 {Object.entries(manifest.panel_quality.missingness_pct).map(([col, pct]) => (
-                  <div key={col} className={`px-2 py-1 rounded-md text-[10px] font-mono flex justify-between ${pct > 0 ? "bg-rose-950/40 text-rose-300" : "bg-surface-sunken/60 text-muted-foreground"}`}>
+                  <div key={col} className={`px-2 py-1 rounded-md text-[10px] font-mono flex justify-between ${pct > 0 ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300" : "bg-surface-sunken/60 text-muted-foreground"}`}>
                     <span>{col}</span>
                     <span>{pct}%</span>
                   </div>
@@ -709,7 +709,7 @@ const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label,
  * graph once and renders it as either an interactive 3D scene or an
  * accessible 2D table, auto-falling back to 2D when WebGL isn't available
  * rather than showing a broken canvas. */
-const SkillUniversePanel: React.FC = () => {
+const SkillUniversePanel: React.FC<{ focusOccupationCode: number }> = ({ focusOccupationCode }) => {
   const [graph, setGraph] = useState<SkillGraphResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -773,22 +773,22 @@ const SkillUniversePanel: React.FC = () => {
         </CardContent>
       </Card>
 
-      <div className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-500/20 text-amber-200/80 text-[11px] flex items-start gap-2">
+      <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-50 dark:bg-amber-950/20 border border-amber-500/30 text-amber-800 dark:text-amber-700 dark:text-amber-200/80 text-[11px] flex items-start gap-2">
         <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
         {graph.data_note}
       </div>
 
       {view === "3d" ? (
         isWebGLAvailable() ? (
-          <SkillUniverse3D nodes={graph.nodes} edges={graph.edges} categories={categories} />
+          <SkillUniverse3D nodes={graph.nodes} edges={graph.edges} categories={categories} focusOccupationCode={focusOccupationCode} />
         ) : (
-          <div className="p-4 rounded-2xl bg-surface/40 border border-border text-amber-300 text-xs">
+          <div className="p-4 rounded-2xl bg-surface/40 border border-border text-amber-700 dark:text-amber-700 dark:text-amber-300 text-xs">
             WebGL isn't available in this browser/device — showing the 2D table instead.
-            <SkillUniverse2D nodes={graph.nodes} edges={graph.edges} categories={categories} />
+            <SkillUniverse2D nodes={graph.nodes} edges={graph.edges} categories={categories} focusOccupationCode={focusOccupationCode} />
           </div>
         )
       ) : (
-        <SkillUniverse2D nodes={graph.nodes} edges={graph.edges} categories={categories} />
+        <SkillUniverse2D nodes={graph.nodes} edges={graph.edges} categories={categories} focusOccupationCode={focusOccupationCode} />
       )}
     </div>
   )
@@ -905,7 +905,7 @@ const WorkforceGapPanel: React.FC<{ forecastDetail: ForecastDetailResponse }> = 
             {forecastDetail.region.state_name}, {forecastDetail.occupation.trade_category} &middot; {forecastDetail.historical_series.length} monthly observations
           </div>
         </div>
-        <div className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-500/20 text-amber-200/90">
+        <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-50 dark:bg-amber-950/20 border border-amber-500/30 text-amber-800 dark:text-amber-700 dark:text-amber-200/90">
           <strong>Limitation:</strong> these two measures are not on a directly comparable real-world unit (a demonstration index vs. a
           real percentage share) — the net gap shown is a relative indicator for this demo, not a literal worker-count shortfall. Do not
           treat the supply figure as an exact count of qualified workers available for this occupation.
